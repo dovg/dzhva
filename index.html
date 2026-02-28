@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Грабить Корованы — 3D Action</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: #e0d8c0; }
@@ -207,6 +208,10 @@ canvas { display: block; }
   F5 — сохранить | F9 — загрузить
 </div>
 
+<div id="music-volume" style="display:none; position:fixed; bottom:12px; right:12px; z-index:10; font-size:11px; color:#776655;">
+  🎵 <input type="range" min="0" max="100" value="50" style="width:80px; vertical-align:middle; accent-color:#c4a44e;" oninput="musicSetVolume(this.value/100)">
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ============================================================
@@ -251,6 +256,22 @@ const FACTION_ENEMIES = {
 
 const FACTION_NAMES = { elf: 'Эльфы', guard: 'Охрана', villain: 'Злой' };
 const FACTION_COLORS = { elf: 0x44cc66, guard: 0x6699ff, villain: 0xee4444, neutral: 0xccaa44 };
+
+// --- Music Scales & Chords ---
+// Frequencies for each zone's scale (one octave, starting from root)
+const MUSIC_SCALES = {
+  town:     [293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33], // D Dorian
+  palace:   [220.00, 233.08, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00], // A Phrygian
+  forest:   [164.81, 196.00, 220.00, 246.94, 329.63, 369.99, 440.00, 493.88], // E minor pentatonic extended
+  mountain: [246.94, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88]  // B Locrian
+};
+// Chord progressions per zone: 8 beats, each chord is [root, 3rd, 5th] as scale degree indices
+const MUSIC_CHORDS = {
+  town:     [[0,2,4],[3,5,0],[1,3,5],[4,6,1],[0,2,4],[5,0,2],[3,5,0],[4,6,1]],
+  palace:   [[0,2,4],[1,3,5],[0,2,4],[3,5,0],[4,6,1],[0,2,4],[1,3,5],[3,5,0]],
+  forest:   [[0,2,4],[2,4,6],[0,2,4],[3,5,0],[0,2,4],[4,6,1],[2,4,6],[0,2,4]],
+  mountain: [[0,2,4],[1,3,5],[4,6,1],[3,5,0],[0,2,4],[1,3,5],[0,2,4],[3,5,0]]
+};
 
 // --- Sound System (Web Audio API) ---
 let audioCtx = null;
@@ -455,6 +476,257 @@ const SFX = {
 };
 
 let footstepTimer = 0;
+
+// --- Procedural Music System ---
+function musicInit() {
+  const ctx = ensureAudio();
+  const t = ctx.currentTime;
+
+  // Master chain: musicGainNode -> lowpass filter -> destination
+  musicGainNode = ctx.createGain();
+  musicGainNode.gain.value = musicVolume * 0.35;
+  musicFilter = ctx.createBiquadFilter();
+  musicFilter.type = 'lowpass';
+  musicFilter.frequency.value = 2500;
+  musicFilter.Q.value = 0.7;
+  musicGainNode.connect(musicFilter).connect(ctx.destination);
+
+  // Create oscillator layers
+  // Drone: two oscillators (sine for explore, sawtooth for combat) crossfaded
+  const droneSine = ctx.createOscillator();
+  droneSine.type = 'sine';
+  droneSine.frequency.value = 146.83; // D3
+  const droneSineGain = ctx.createGain();
+  droneSineGain.gain.value = 0.18;
+  droneSine.connect(droneSineGain).connect(musicGainNode);
+
+  const droneSaw = ctx.createOscillator();
+  droneSaw.type = 'sawtooth';
+  droneSaw.frequency.value = 146.83;
+  const droneSawGain = ctx.createGain();
+  droneSawGain.gain.value = 0;
+  droneSaw.connect(droneSawGain).connect(musicGainNode);
+
+  // 3 Pad oscillators (triangle, for chords)
+  const pads = [];
+  const padGains = [];
+  for (let i = 0; i < 3; i++) {
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = 220;
+    const g = ctx.createGain();
+    g.gain.value = 0.08;
+    osc.connect(g).connect(musicGainNode);
+    pads.push(osc);
+    padGains.push(g);
+  }
+
+  // Melody oscillator (sine)
+  const melody = ctx.createOscillator();
+  melody.type = 'sine';
+  melody.frequency.value = 440;
+  const melodyGain = ctx.createGain();
+  melodyGain.gain.value = 0.04;
+  melody.connect(melodyGain).connect(musicGainNode);
+
+  // Rhythm oscillator (square, low freq pulse)
+  const rhythm = ctx.createOscillator();
+  rhythm.type = 'square';
+  rhythm.frequency.value = 73.42; // D2
+  const rhythmGain = ctx.createGain();
+  rhythmGain.gain.value = 0;
+  rhythm.connect(rhythmGain).connect(musicGainNode);
+
+  // Start all oscillators
+  [droneSine, droneSaw, ...pads, melody, rhythm].forEach(o => o.start(t));
+
+  musicNodes = {
+    droneSine, droneSineGain, droneSaw, droneSawGain,
+    pads, padGains,
+    melody, melodyGain,
+    rhythm, rhythmGain
+  };
+
+  musicBeat = 0;
+  musicBeatTimer = 0;
+  musicMelodyIndex = 0;
+  musicCombatTimer = 0;
+  musicCrossfadeAmt = 0;
+  musicState = 'explore';
+  musicTarget = 'explore';
+  musicPlaying = true;
+  musicCurrentZone = getZone(playerBody.position.x, playerBody.position.z);
+
+  // Play the first beat immediately
+  musicAdvanceBeat(ctx.currentTime);
+}
+
+function musicUpdate(dt) {
+  if (!musicPlaying || !musicNodes || !audioCtx) return;
+
+  // Detect combat vs exploration
+  musicDetectCombat(dt);
+
+  // Crossfade between modes
+  musicCrossfade(dt);
+
+  // Beat sequencer: tempo depends on mode
+  const beatInterval = musicCrossfadeAmt < 0.5 ? 0.5 : 0.25;
+  musicBeatTimer += dt;
+  if (musicBeatTimer >= beatInterval) {
+    musicBeatTimer -= beatInterval;
+    musicBeat = (musicBeat + 1) % 8;
+
+    // Detect zone change at bar boundaries (every 8 beats)
+    if (musicBeat === 0) {
+      musicCurrentZone = getZone(playerBody.position.x, playerBody.position.z);
+    }
+
+    musicAdvanceBeat(audioCtx.currentTime);
+  }
+}
+
+function musicAdvanceBeat(t) {
+  if (!musicNodes) return;
+  const zone = musicCurrentZone;
+  const scale = MUSIC_SCALES[zone];
+  const chords = MUSIC_CHORDS[zone];
+  const chord = chords[musicBeat];
+  const portamento = 0.15; // glide time for frequency changes
+
+  // Update drone frequency (root of current chord)
+  const droneFreq = scale[chord[0]] / 2; // one octave lower
+  musicNodes.droneSine.frequency.setTargetAtTime(droneFreq, t, portamento);
+  musicNodes.droneSaw.frequency.setTargetAtTime(droneFreq, t, portamento);
+
+  // Update pad chord frequencies
+  for (let i = 0; i < 3; i++) {
+    const freq = scale[chord[i] % scale.length];
+    musicNodes.pads[i].frequency.setTargetAtTime(freq, t, portamento);
+  }
+
+  // Melody: step through scale
+  musicMelodyStep(scale, t);
+
+  // Rhythm pulse: quick volume envelope on rhythm beats (every 2nd beat)
+  if (musicBeat % 2 === 0 && musicCrossfadeAmt > 0.3) {
+    const rg = musicNodes.rhythmGain.gain;
+    const vol = 0.1 * musicCrossfadeAmt;
+    rg.setValueAtTime(vol, t);
+    rg.setTargetAtTime(0, t + 0.05, 0.08);
+  }
+
+  // Update rhythm oscillator frequency to match drone
+  musicNodes.rhythm.frequency.setTargetAtTime(droneFreq / 2, t, portamento);
+}
+
+function musicMelodyStep(scale, t) {
+  if (!musicNodes) return;
+  // Step-wise movement with occasional skip
+  const step = Math.random() < 0.2
+    ? (Math.random() < 0.5 ? 2 : -2)  // occasional leap
+    : (Math.random() < 0.5 ? 1 : -1); // stepwise motion
+  musicMelodyIndex = ((musicMelodyIndex + step) % scale.length + scale.length) % scale.length;
+
+  // Occasionally rest (silence) for musical breathing
+  if (Math.random() < 0.25) {
+    musicNodes.melodyGain.gain.setTargetAtTime(0, t, 0.05);
+    return;
+  }
+
+  const freq = scale[musicMelodyIndex];
+  const baseVol = musicCrossfadeAmt < 0.5 ? 0.04 : 0.09;
+  musicNodes.melody.frequency.setTargetAtTime(freq, t, 0.08);
+  musicNodes.melodyGain.gain.setTargetAtTime(baseVol, t, 0.05);
+}
+
+function musicDetectCombat(dt) {
+  let combatNearby = false;
+  const px = playerBody.position.x, pz = playerBody.position.z;
+  for (let i = 0; i < npcs.length; i++) {
+    const npc = npcs[i];
+    if (!npc.alive) continue;
+    if (npc.state === 'chase' || npc.state === 'attack') {
+      const dx = npc.mesh.position.x - px;
+      const dz = npc.mesh.position.z - pz;
+      if (dx * dx + dz * dz < 40 * 40) {
+        combatNearby = true;
+        break;
+      }
+    }
+  }
+  if (combatNearby) {
+    musicTarget = 'combat';
+    musicCombatTimer = 0;
+  } else {
+    musicCombatTimer += dt;
+    if (musicCombatTimer > 4) musicTarget = 'explore';
+  }
+}
+
+function musicCrossfade(dt) {
+  const target = musicTarget === 'combat' ? 1 : 0;
+  const speed = dt / 1.25; // ~1.25 sec crossfade
+  if (musicCrossfadeAmt < target) {
+    musicCrossfadeAmt = Math.min(musicCrossfadeAmt + speed, 1);
+  } else if (musicCrossfadeAmt > target) {
+    musicCrossfadeAmt = Math.max(musicCrossfadeAmt - speed, 0);
+  }
+
+  if (!musicNodes) return;
+  const cf = musicCrossfadeAmt;
+  const t = audioCtx.currentTime;
+
+  // Drone crossfade: sine (explore) <-> sawtooth (combat)
+  musicNodes.droneSineGain.gain.setTargetAtTime(0.18 * (1 - cf), t, 0.1);
+  musicNodes.droneSawGain.gain.setTargetAtTime(0.12 * cf, t, 0.1);
+
+  // Pads: slightly brighter/louder in combat
+  const padVol = 0.08 + 0.04 * cf;
+  for (let i = 0; i < 3; i++) {
+    musicNodes.padGains[i].gain.setTargetAtTime(padVol, t, 0.1);
+  }
+
+  // Filter: more open in combat
+  musicFilter.frequency.setTargetAtTime(2500 + 3000 * cf, t, 0.2);
+
+  musicState = cf > 0.5 ? 'combat' : 'explore';
+}
+
+function musicSetVolume(vol) {
+  musicVolume = Math.max(0, Math.min(1, vol));
+  if (musicGainNode && audioCtx) {
+    musicGainNode.gain.setTargetAtTime(musicVolume * 0.35, audioCtx.currentTime, 0.05);
+  }
+}
+
+function musicStop() {
+  if (!musicGainNode || !audioCtx) return;
+  musicGainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.3);
+  musicPlaying = false;
+}
+
+function musicStart() {
+  if (!musicNodes) { musicInit(); return; }
+  if (!musicGainNode || !audioCtx) return;
+  musicGainNode.gain.setTargetAtTime(musicVolume * 0.35, audioCtx.currentTime, 0.3);
+  musicPlaying = true;
+}
+
+// --- Music State ---
+let musicGainNode = null;    // master gain for all music
+let musicFilter = null;      // lowpass filter before destination
+let musicVolume = 0.5;       // user-controlled volume (0-1)
+let musicState = 'explore';  // current mode: 'explore' or 'combat'
+let musicTarget = 'explore'; // target mode (for crossfade)
+let musicBeat = 0;           // current beat in 8-beat cycle
+let musicBeatTimer = 0;      // accumulates dt to advance beats
+let musicMelodyIndex = 0;    // current position in scale for melody
+let musicCombatTimer = 0;    // seconds since last combat NPC detected
+let musicPlaying = false;    // whether music system is active
+let musicNodes = null;       // object holding all oscillator/gain nodes
+let musicCrossfadeAmt = 0;   // 0 = full explore, 1 = full combat
+let musicCurrentZone = 'town';
 
 // --- Game State ---
 let gameState = {
@@ -1140,9 +1412,11 @@ function startGame(faction) {
   document.getElementById('hud-info').style.display = 'block';
   document.getElementById('crosshair').style.display = 'block';
   document.getElementById('instructions').style.display = 'block';
+  document.getElementById('music-volume').style.display = 'block';
   document.getElementById('faction-display').textContent = 'Фракция: ' + FACTION_NAMES[faction];
 
   isAlive = true;
+  musicInit();
   showMessage('Добро пожаловать, воин! Грабь корованы!', '#c4a44e');
   requestLock();
 }
@@ -1366,6 +1640,7 @@ function tryInteract() {
 // --- Shop ---
 function openShop(merchant) {
   shopOpen = true;
+  musicStop();
   document.exitPointerLock();
   const ui = document.getElementById('shop-ui');
   ui.classList.add('active');
@@ -1463,6 +1738,7 @@ window.buyItem = function(idx, btn) {
 function closeShop() {
   shopOpen = false;
   document.getElementById('shop-ui').classList.remove('active');
+  musicStart();
   requestLock();
 }
 
@@ -1673,6 +1949,7 @@ function updateCaravans(dt) {
 function die() {
   if (!isAlive) return;
   isAlive = false;
+  musicStop();
   SFX.death();
   document.getElementById('death-screen').classList.add('active');
   document.exitPointerLock();
@@ -1689,6 +1966,7 @@ window.respawn = function() {
   playerBody.velocity.set(0, 0, 0);
 
   isAlive = true;
+  musicStart();
   document.getElementById('death-screen').classList.remove('active');
   document.getElementById('eye-injury').style.display = 'none';
   document.getElementById('injury-overlay').style.background = 'transparent';
@@ -1733,9 +2011,11 @@ function loadGame() {
   document.getElementById('hud-info').style.display = 'block';
   document.getElementById('crosshair').style.display = 'block';
   document.getElementById('instructions').style.display = 'block';
+  document.getElementById('music-volume').style.display = 'block';
   document.getElementById('faction-display').textContent = 'Фракция: ' + FACTION_NAMES[gameState.faction];
 
   isAlive = true;
+  musicInit();
   SFX.save();
   showMessage('📜 Игра загружена!', '#44cc66');
 
@@ -1872,6 +2152,8 @@ function onResize() {
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.1);
+
+  musicUpdate(dt);
 
   if (gameState.faction && isAlive && !shopOpen) {
     updatePlayer(dt);
