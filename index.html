@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-VT84Y84M69"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-VT84Y84M69');
+</script>
 <title>Грабить Корованы — 3D Action</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
 <style>
@@ -111,6 +119,97 @@ canvas { display: block; }
 }
 #shop-close:hover { border-color: #c4a44e; color: #c4a44e; }
 
+/* Inventory UI */
+#inventory-ui {
+  position: fixed; inset: 0; z-index: 50; display: none;
+  background: #000000dd; align-items: center; justify-content: center;
+}
+#inventory-ui.active { display: flex; }
+#inventory-panel {
+  background: #1a1508; border: 2px solid #554422; padding: 24px; min-width: 450px; max-width: 550px;
+  max-height: 80vh; overflow-y: auto;
+}
+#inventory-panel h2 { color: #c4a44e; margin-bottom: 12px; }
+.equip-section { margin-bottom: 16px; border-bottom: 1px solid #332211; padding-bottom: 12px; }
+.equip-section h3 { color: #998866; font-size: 14px; margin-bottom: 8px; }
+.equip-slot {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 4px 8px; font-size: 13px; color: #ccaa88;
+}
+.equip-slot .slot-name { color: #776655; width: 80px; }
+.equip-slot .slot-value { flex: 1; color: #c4a44e; }
+.inv-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 8px; border-bottom: 1px solid #221a0a; cursor: pointer; font-size: 13px;
+}
+.inv-item:hover { background: #221a0a; }
+.inv-item .inv-btn {
+  margin-left: 8px; padding: 2px 10px; background: #332211; border: 1px solid #554422;
+  color: #c4a44e; cursor: pointer; font-family: inherit; font-size: 11px;
+}
+.inv-item .inv-btn:hover { background: #443322; }
+#inventory-close {
+  margin-top: 12px; padding: 6px 20px; background: none; border: 1px solid #554422;
+  color: #887744; font-family: inherit; cursor: pointer; font-size: 13px;
+}
+#inventory-close:hover { border-color: #c4a44e; color: #c4a44e; }
+
+/* Quest UI */
+#quest-ui {
+  position: fixed; inset: 0; z-index: 50; display: none;
+  background: #000000dd; align-items: center; justify-content: center;
+}
+#quest-ui.active { display: flex; }
+#quest-panel {
+  background: #1a1508; border: 2px solid #554422; padding: 24px; min-width: 450px; max-width: 550px;
+  max-height: 80vh; overflow-y: auto;
+}
+#quest-panel h2 { color: #c4a44e; margin-bottom: 12px; }
+.quest-item {
+  padding: 8px; border-bottom: 1px solid #332211; font-size: 13px;
+}
+.quest-item .quest-title { color: #c4a44e; font-size: 14px; margin-bottom: 4px; }
+.quest-item .quest-desc { color: #998866; margin-bottom: 4px; }
+.quest-item .quest-progress { color: #44cc66; font-size: 12px; }
+.quest-item .quest-reward { color: #ccaa44; font-size: 12px; }
+#quest-close {
+  margin-top: 12px; padding: 6px 20px; background: none; border: 1px solid #554422;
+  color: #887744; font-family: inherit; cursor: pointer; font-size: 13px;
+}
+#quest-close:hover { border-color: #c4a44e; color: #c4a44e; }
+
+/* Quest tracker in HUD */
+#quest-tracker {
+  position: fixed; top: 80px; right: 12px; z-index: 10; pointer-events: none;
+  font-size: 12px; text-align: right; max-width: 250px;
+}
+#quest-tracker .qt-title { color: #c4a44e; font-size: 11px; }
+#quest-tracker .qt-progress { color: #998866; font-size: 11px; }
+
+/* Stealth indicator */
+#stealth-indicator { color: #44cc66; font-size: 13px; }
+
+/* XP bar */
+#xp-fill { background: linear-gradient(90deg, #8844cc, #aa66ee); }
+
+/* Shop quest section */
+.shop-quest-section { margin-top: 16px; border-top: 2px solid #554422; padding-top: 12px; }
+.shop-quest-section h3 { color: #c4a44e; margin-bottom: 8px; font-size: 15px; }
+.quest-offer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px; border-bottom: 1px solid #332211; font-size: 13px;
+}
+.quest-offer:hover { background: #221a0a; }
+.quest-offer-info { flex: 1; }
+.quest-offer-name { color: #c4a44e; }
+.quest-offer-desc { color: #998866; font-size: 12px; }
+.quest-offer-reward { color: #ccaa44; font-size: 12px; }
+.quest-offer .quest-btn {
+  margin-left: 8px; padding: 4px 12px; background: #332211; border: 1px solid #554422;
+  color: #c4a44e; cursor: pointer; font-family: inherit; font-size: 12px;
+}
+.quest-offer .quest-btn:hover { background: #443322; }
+
 /* Messages */
 #messages {
   position: fixed; bottom: 60px; left: 12px; z-index: 10; pointer-events: none;
@@ -171,12 +270,15 @@ canvas { display: block; }
   <div class="hud-bars">
     <div class="bar-wrap"><div id="health-fill" class="bar-fill" style="width:100%"></div><div class="bar-label">❤️ <span id="health-text">100/100</span></div></div>
     <div class="bar-wrap"><div id="stamina-fill" class="bar-fill" style="width:100%"></div><div class="bar-label">⚡ <span id="stamina-text">100/100</span></div></div>
+    <div class="bar-wrap"><div id="xp-fill" class="bar-fill" style="width:0%"></div><div class="bar-label">✨ <span id="xp-text">0/100 XP</span></div></div>
   </div>
 </div>
 <div id="hud-info" style="display:none">
   <div id="gold-display">💰 0</div>
   <div id="zone-display">Зона: —</div>
   <div id="faction-display">Фракция: —</div>
+  <div id="level-display">Уровень: 1</div>
+  <div id="stealth-indicator"></div>
   <div id="injuries-display"></div>
 </div>
 
@@ -202,9 +304,30 @@ canvas { display: block; }
 </div>
 
 <div id="messages"></div>
+
+<div id="inventory-ui">
+  <div id="inventory-panel">
+    <h2>🎒 Инвентарь</h2>
+    <div id="inventory-equip"></div>
+    <div id="inventory-items"></div>
+    <button id="inventory-close" onclick="toggleInventory()">Закрыть [I]</button>
+  </div>
+</div>
+
+<div id="quest-ui">
+  <div id="quest-panel">
+    <h2>📜 Задания</h2>
+    <div id="quest-list"></div>
+    <button id="quest-close" onclick="toggleQuestLog()">Закрыть [J]</button>
+  </div>
+</div>
+
+<div id="quest-tracker" style="display:none"></div>
+
 <div id="instructions" style="display:none">
   WASD — движение | Мышь — обзор | ПКМ — блок<br>
   ЛКМ — атака | Space — прыжок | E — взаимодействие<br>
+  C — присесть | I — инвентарь | J — задания<br>
   F5 — сохранить | F9 — загрузить
 </div>
 
@@ -272,6 +395,95 @@ const MUSIC_CHORDS = {
   forest:   [[0,2,4],[2,4,6],[0,2,4],[3,5,0],[0,2,4],[4,6,1],[2,4,6],[0,2,4]],
   mountain: [[0,2,4],[1,3,5],[4,6,1],[3,5,0],[0,2,4],[1,3,5],[0,2,4],[3,5,0]]
 };
+
+// --- Equipment Types ---
+const WEAPON_TYPES = {
+  fists:       { name: '👊 Кулаки',       damage: 10, cooldown: 0.4, stealthMult: 1.0 },
+  basic_sword: { name: '🗡️ Простой меч',  damage: 15, cooldown: 0.5, stealthMult: 1.0 },
+  good_sword:  { name: '⚔️ Хороший меч',  damage: 20, cooldown: 0.5, stealthMult: 1.0 },
+  axe:         { name: '🪓 Топор',         damage: 23, cooldown: 0.8, stealthMult: 1.0 },
+  dagger:      { name: '🔪 Кинжал',        damage: 13, cooldown: 0.3, stealthMult: 1.5 }
+};
+
+const SHIELD_TYPES = {
+  none:         { name: 'Нет',             blockMult: 0.3 },
+  basic_shield: { name: '🛡️ Простой щит', blockMult: 0.2 },
+  good_shield:  { name: '🛡️ Крепкий щит', blockMult: 0.1 }
+};
+
+const ARMOR_TYPES = {
+  none:  { name: 'Нет',               dmgReduction: 0,    speedMult: 1.0 },
+  light: { name: '🧥 Лёгкая броня',   dmgReduction: 0.10, speedMult: 1.0 },
+  heavy: { name: '🛡️ Тяжёлая броня', dmgReduction: 0.25, speedMult: 0.85 }
+};
+
+// --- Level / XP Constants ---
+const XP_PER_LEVEL = 100;
+const MAX_LEVEL = 20;
+const HP_BONUS_PER_LEVEL = 10;
+const STAM_BONUS_PER_LEVEL = 5;
+const DMG_BONUS_PER_LEVEL = 2;
+
+// --- Loot Tables ---
+const LOOT_TABLES = {
+  elf: [
+    { type: 'consumable', subtype: 'heal', name: '❤️ Зелье лечения', chance: 0.20 },
+    { type: 'weapon', subtype: 'dagger', name: '🔪 Кинжал', chance: 0.05 },
+    { type: 'armor', subtype: 'light', name: '🧥 Лёгкая броня', chance: 0.03 }
+  ],
+  guard: [
+    { type: 'consumable', subtype: 'stamina_pot', name: '⚡ Зелье выносливости', chance: 0.20 },
+    { type: 'weapon', subtype: 'good_sword', name: '⚔️ Хороший меч', chance: 0.05 },
+    { type: 'shield', subtype: 'basic_shield', name: '🛡️ Простой щит', chance: 0.08 },
+    { type: 'armor', subtype: 'heavy', name: '🛡️ Тяжёлая броня', chance: 0.02 }
+  ],
+  villain: [
+    { type: 'consumable', subtype: 'heal', name: '❤️ Зелье лечения', chance: 0.15 },
+    { type: 'weapon', subtype: 'axe', name: '🪓 Топор', chance: 0.04 },
+    { type: 'consumable', subtype: 'bandage', name: '🏥 Бинты', chance: 0.25 }
+  ],
+  neutral: [
+    { type: 'consumable', subtype: 'heal', name: '❤️ Зелье лечения', chance: 0.10 }
+  ],
+  caravan: [
+    { type: 'weapon', subtype: 'good_sword', name: '⚔️ Хороший меч', chance: 0.15 },
+    { type: 'armor', subtype: 'heavy', name: '🛡️ Тяжёлая броня', chance: 0.08 },
+    { type: 'shield', subtype: 'basic_shield', name: '🛡️ Простой щит', chance: 0.10 },
+    { type: 'consumable', subtype: 'heal', name: '❤️ Зелье лечения', chance: 0.30 }
+  ]
+};
+
+// --- Quest Definitions ---
+const QUEST_DEFINITIONS = [
+  { id: 'town_kill_villains', zone: 'town', name: 'Зачистить деревню', desc: 'Убей 3 злодеев рядом с деревней',
+    type: 'kill', targetFaction: 'villain', required: 3, rewardGold: 50, rewardXP: 40 },
+  { id: 'town_rob_caravan', zone: 'town', name: 'Первое ограбление', desc: 'Ограбь 1 караван',
+    type: 'rob', required: 1, rewardGold: 40, rewardXP: 50 },
+  { id: 'town_gold', zone: 'town', name: 'Накопить состояние', desc: 'Накопи 200 золота',
+    type: 'gold', required: 200, rewardGold: 30, rewardXP: 30 },
+  { id: 'palace_kill_elves', zone: 'palace', name: 'Подавить эльфов', desc: 'Убей 5 эльфов',
+    type: 'kill', targetFaction: 'elf', required: 5, rewardGold: 70, rewardXP: 60 },
+  { id: 'palace_mountain', zone: 'palace', name: 'Разведка гор', desc: 'Доберись до горного форта',
+    type: 'visit_zone', targetZone: 'mountain', required: 1, rewardGold: 40, rewardXP: 50 },
+  { id: 'forest_kill_guards', zone: 'forest', name: 'Отогнать стражу', desc: 'Убей 5 стражников',
+    type: 'kill', targetFaction: 'guard', required: 5, rewardGold: 70, rewardXP: 60 },
+  { id: 'forest_rob_caravans', zone: 'forest', name: 'Караванный рейд', desc: 'Ограбь 3 каравана',
+    type: 'rob', required: 3, rewardGold: 80, rewardXP: 80 },
+  { id: 'mountain_kill_all', zone: 'mountain', name: 'Истребитель', desc: 'Убей 10 любых врагов',
+    type: 'kill_any', required: 10, rewardGold: 100, rewardXP: 100 },
+  { id: 'mountain_explore', zone: 'mountain', name: 'Исследователь', desc: 'Посети все 4 зоны',
+    type: 'visit_all', required: 4, rewardGold: 60, rewardXP: 80 },
+  { id: 'bonus_gold', zone: 'town', name: 'Богач', desc: 'Накопи 500 золота — получи хороший меч',
+    type: 'gold', required: 500, rewardGold: 0, rewardXP: 50, rewardItem: { type: 'weapon', subtype: 'good_sword', name: '⚔️ Хороший меч' } }
+];
+
+// --- Stealth Constants ---
+const CROUCH_SPEED_MULT = 0.5;
+const STEALTH_DETECT_RANGE = 8;
+const STEALTH_DETECT_CONE = Math.PI / 3;
+const BACKSTAB_MULT = 3;
+const SPRINT_DETECT_RANGE = 35;
+const NORMAL_DETECT_RANGE = 25;
 
 // --- Sound System (Web Audio API) ---
 let audioCtx = null;
@@ -737,8 +949,20 @@ let gameState = {
   injuries: { leftArm: false, rightArm: false, leftEye: false, rightEye: false, leftLeg: false, rightLeg: false },
   prosthetics: { leftArm: false, rightArm: false, leftLeg: false, rightLeg: false },
   inventory: [],
+  equipment: { weapon: 'basic_sword', shield: 'none', armor: 'none' },
   kills: 0,
-  caravansRobbed: 0
+  caravansRobbed: 0,
+  // Level / XP
+  level: 1,
+  xp: 0,
+  xpToNext: XP_PER_LEVEL,
+  baseDamageBonus: 0,
+  // Quests
+  activeQuests: [],
+  completedQuests: [],
+  visitedZones: [],
+  // Stealth
+  stealthKills: 0
 };
 
 // --- Three.js Setup ---
@@ -752,6 +976,10 @@ let isBlocking = false;
 let bleedTimer = 0;
 let isAlive = true;
 let shopOpen = false;
+let inventoryOpen = false;
+let questLogOpen = false;
+let isCrouching = false;
+let isStealthed = false;
 
 // Object pools
 let trees3D = [];
@@ -764,6 +992,348 @@ let merchants = [];
 
 // Heightmap
 let heightData;
+
+// --- Equipment Helpers ---
+function getEquippedWeaponStats() {
+  return WEAPON_TYPES[gameState.equipment.weapon] || WEAPON_TYPES.fists;
+}
+function getEquippedShieldStats() {
+  return SHIELD_TYPES[gameState.equipment.shield] || SHIELD_TYPES.none;
+}
+function getEquippedArmorStats() {
+  return ARMOR_TYPES[gameState.equipment.armor] || ARMOR_TYPES.none;
+}
+
+function addItemToInventory(item) {
+  gameState.inventory.push(item);
+  showMessage(`+ ${item.name}`, '#44cc66');
+}
+
+function equipItem(index) {
+  const item = gameState.inventory[index];
+  if (!item) return;
+  if (item.type === 'weapon') {
+    const old = gameState.equipment.weapon;
+    gameState.equipment.weapon = item.subtype;
+    gameState.inventory.splice(index, 1);
+    if (old !== 'fists') {
+      const oldWeapon = WEAPON_TYPES[old];
+      gameState.inventory.push({ type: 'weapon', subtype: old, name: oldWeapon.name });
+    }
+    showMessage(`Экипировано: ${WEAPON_TYPES[item.subtype].name}`, '#c4a44e');
+  } else if (item.type === 'shield') {
+    const old = gameState.equipment.shield;
+    gameState.equipment.shield = item.subtype;
+    gameState.inventory.splice(index, 1);
+    if (old !== 'none') {
+      const oldShield = SHIELD_TYPES[old];
+      gameState.inventory.push({ type: 'shield', subtype: old, name: oldShield.name });
+    }
+    showMessage(`Экипировано: ${SHIELD_TYPES[item.subtype].name}`, '#c4a44e');
+  } else if (item.type === 'armor') {
+    const old = gameState.equipment.armor;
+    gameState.equipment.armor = item.subtype;
+    gameState.inventory.splice(index, 1);
+    if (old !== 'none') {
+      const oldArmor = ARMOR_TYPES[old];
+      gameState.inventory.push({ type: 'armor', subtype: old, name: oldArmor.name });
+    }
+    showMessage(`Экипировано: ${ARMOR_TYPES[item.subtype].name}`, '#c4a44e');
+  }
+  renderInventory();
+}
+
+function useConsumable(index) {
+  const item = gameState.inventory[index];
+  if (!item || item.type !== 'consumable') return;
+  gameState.inventory.splice(index, 1);
+  switch (item.subtype) {
+    case 'heal':
+      gameState.health = Math.min(gameState.maxHealth, gameState.health + 50);
+      showMessage('❤️ Здоровье восстановлено! +50', '#44cc66');
+      break;
+    case 'stamina_pot':
+      gameState.stamina = Math.min(gameState.maxStamina, gameState.stamina + 50);
+      showMessage('⚡ Выносливость восстановлена! +50', '#44cc66');
+      break;
+    case 'bandage':
+      if (bleedTimer > 0) {
+        bleedTimer = 0;
+        showMessage('🏥 Кровотечение остановлено!', '#44cc66');
+      } else {
+        showMessage('🏥 Бинты использованы (нет кровотечения)', '#888');
+      }
+      break;
+  }
+  renderInventory();
+}
+
+function renderInventory() {
+  const equipDiv = document.getElementById('inventory-equip');
+  const itemsDiv = document.getElementById('inventory-items');
+  const ws = getEquippedWeaponStats();
+  const ss = getEquippedShieldStats();
+  const as = getEquippedArmorStats();
+
+  equipDiv.innerHTML = `
+    <div class="equip-section">
+      <h3>Экипировка</h3>
+      <div class="equip-slot"><span class="slot-name">Оружие:</span><span class="slot-value">${ws.name} (урон: ${ws.damage})</span></div>
+      <div class="equip-slot"><span class="slot-name">Щит:</span><span class="slot-value">${ss.name} (блок: ${Math.round((1-ss.blockMult)*100)}%)</span></div>
+      <div class="equip-slot"><span class="slot-name">Броня:</span><span class="slot-value">${as.name} (защита: ${Math.round(as.dmgReduction*100)}%)</span></div>
+    </div>
+  `;
+
+  itemsDiv.innerHTML = '<h3 style="color:#998866;font-size:14px;margin-bottom:8px;">Предметы (' + gameState.inventory.length + ')</h3>';
+  if (gameState.inventory.length === 0) {
+    itemsDiv.innerHTML += '<div style="color:#665544;font-size:13px;padding:8px;">Пусто</div>';
+  }
+  gameState.inventory.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'inv-item';
+    const btnLabel = item.type === 'consumable' ? 'Использовать' : 'Экипировать';
+    const action = item.type === 'consumable' ? `useConsumable(${i})` : `equipItem(${i})`;
+    div.innerHTML = `<span>${item.name}</span><button class="inv-btn" onclick="${action}">${btnLabel}</button>`;
+    itemsDiv.appendChild(div);
+  });
+}
+
+function toggleInventory() {
+  if (questLogOpen) return;
+  inventoryOpen = !inventoryOpen;
+  const ui = document.getElementById('inventory-ui');
+  if (inventoryOpen) {
+    ui.classList.add('active');
+    renderInventory();
+    document.exitPointerLock();
+  } else {
+    ui.classList.remove('active');
+    requestLock();
+  }
+}
+
+// --- XP / Leveling ---
+function addXP(amount) {
+  if (gameState.level >= MAX_LEVEL) return;
+  gameState.xp += amount;
+  showMessage(`+${amount} XP`, '#aa66ee');
+  while (gameState.xp >= gameState.xpToNext && gameState.level < MAX_LEVEL) {
+    gameState.xp -= gameState.xpToNext;
+    gameState.level++;
+    gameState.xpToNext = gameState.level * XP_PER_LEVEL;
+    gameState.maxHealth += HP_BONUS_PER_LEVEL;
+    gameState.health += HP_BONUS_PER_LEVEL;
+    gameState.maxStamina += STAM_BONUS_PER_LEVEL;
+    gameState.stamina += STAM_BONUS_PER_LEVEL;
+    gameState.baseDamageBonus += DMG_BONUS_PER_LEVEL;
+    showMessage(`🎉 УРОВЕНЬ ${gameState.level}! HP+${HP_BONUS_PER_LEVEL} Стамина+${STAM_BONUS_PER_LEVEL} Урон+${DMG_BONUS_PER_LEVEL}`, '#aa66ee');
+  }
+}
+
+// --- Loot System ---
+function rollLoot(faction) {
+  const table = LOOT_TABLES[faction] || [];
+  const drops = [];
+  table.forEach(entry => {
+    if (Math.random() < entry.chance) {
+      drops.push({ type: entry.type, subtype: entry.subtype, name: entry.name });
+    }
+  });
+  return drops;
+}
+
+// --- Quest System ---
+function getAvailableQuests(zone) {
+  return QUEST_DEFINITIONS.filter(q =>
+    q.zone === zone &&
+    !gameState.activeQuests.some(a => a.id === q.id) &&
+    !gameState.completedQuests.includes(q.id)
+  );
+}
+
+function acceptQuest(id) {
+  const def = QUEST_DEFINITIONS.find(q => q.id === id);
+  if (!def) return;
+  if (gameState.activeQuests.some(q => q.id === id)) return;
+  if (gameState.completedQuests.includes(id)) return;
+  gameState.activeQuests.push({ id: def.id, progress: 0 });
+  showMessage(`📜 Задание принято: ${def.name}`, '#c4a44e');
+}
+
+function checkQuestProgress() {
+  gameState.activeQuests.forEach(quest => {
+    const def = QUEST_DEFINITIONS.find(q => q.id === quest.id);
+    if (!def) return;
+    switch (def.type) {
+      case 'gold':
+        quest.progress = gameState.gold;
+        break;
+      case 'visit_zone':
+        quest.progress = gameState.visitedZones.includes(def.targetZone) ? 1 : 0;
+        break;
+      case 'visit_all':
+        quest.progress = gameState.visitedZones.length;
+        break;
+    }
+    if (quest.progress >= def.required) {
+      completeQuest(quest, def);
+    }
+  });
+}
+
+function completeQuest(quest, def) {
+  gameState.activeQuests = gameState.activeQuests.filter(q => q.id !== quest.id);
+  gameState.completedQuests.push(quest.id);
+  gameState.gold += def.rewardGold;
+  addXP(def.rewardXP);
+  if (def.rewardGold > 0) SFX.gold();
+  showMessage(`✅ Задание выполнено: ${def.name}! +${def.rewardGold}💰 +${def.rewardXP}XP`, '#44cc66');
+  if (def.rewardItem) {
+    addItemToInventory({ type: def.rewardItem.type, subtype: def.rewardItem.subtype, name: def.rewardItem.name });
+  }
+}
+
+function incrementQuestKill(faction) {
+  gameState.activeQuests.forEach(quest => {
+    const def = QUEST_DEFINITIONS.find(q => q.id === quest.id);
+    if (!def) return;
+    if (def.type === 'kill' && def.targetFaction === faction) quest.progress++;
+    if (def.type === 'kill_any') quest.progress++;
+  });
+}
+
+function incrementQuestRob() {
+  gameState.activeQuests.forEach(quest => {
+    const def = QUEST_DEFINITIONS.find(q => q.id === quest.id);
+    if (!def) return;
+    if (def.type === 'rob') quest.progress++;
+  });
+}
+
+function toggleQuestLog() {
+  if (inventoryOpen) return;
+  questLogOpen = !questLogOpen;
+  const ui = document.getElementById('quest-ui');
+  if (questLogOpen) {
+    ui.classList.add('active');
+    renderQuestLog();
+    document.exitPointerLock();
+  } else {
+    ui.classList.remove('active');
+    requestLock();
+  }
+}
+
+function renderQuestLog() {
+  const list = document.getElementById('quest-list');
+  list.innerHTML = '';
+  if (gameState.activeQuests.length === 0) {
+    list.innerHTML = '<div style="color:#665544;padding:8px;">Нет активных заданий. Поговори с торговцем [E].</div>';
+    return;
+  }
+  gameState.activeQuests.forEach(quest => {
+    const def = QUEST_DEFINITIONS.find(q => q.id === quest.id);
+    if (!def) return;
+    const div = document.createElement('div');
+    div.className = 'quest-item';
+    div.innerHTML = `
+      <div class="quest-title">${def.name}</div>
+      <div class="quest-desc">${def.desc}</div>
+      <div class="quest-progress">Прогресс: ${quest.progress} / ${def.required}</div>
+      <div class="quest-reward">Награда: ${def.rewardGold}💰 ${def.rewardXP}✨</div>
+    `;
+    list.appendChild(div);
+  });
+
+  if (gameState.completedQuests.length > 0) {
+    const header = document.createElement('h3');
+    header.style.cssText = 'color:#556644;font-size:14px;margin-top:16px;margin-bottom:8px;';
+    header.textContent = `Выполнено (${gameState.completedQuests.length})`;
+    list.appendChild(header);
+    gameState.completedQuests.forEach(id => {
+      const def = QUEST_DEFINITIONS.find(q => q.id === id);
+      if (!def) return;
+      const div = document.createElement('div');
+      div.className = 'quest-item';
+      div.style.opacity = '0.5';
+      div.innerHTML = `<div class="quest-title">✅ ${def.name}</div>`;
+      list.appendChild(div);
+    });
+  }
+}
+
+function updateQuestTracker() {
+  const tracker = document.getElementById('quest-tracker');
+  if (gameState.activeQuests.length === 0) {
+    tracker.style.display = 'none';
+    return;
+  }
+  tracker.style.display = 'block';
+  let html = '';
+  gameState.activeQuests.slice(0, 3).forEach(quest => {
+    const def = QUEST_DEFINITIONS.find(q => q.id === quest.id);
+    if (!def) return;
+    html += `<div class="qt-title">${def.name}</div><div class="qt-progress">${quest.progress}/${def.required}</div>`;
+  });
+  tracker.innerHTML = html;
+}
+
+function renderShopQuests(merchant) {
+  const zone = merchant.zone;
+  const available = getAvailableQuests(zone);
+  if (available.length === 0) return '';
+  let html = '<div class="shop-quest-section"><h3>📜 Задания</h3>';
+  available.forEach(q => {
+    html += `<div class="quest-offer">
+      <div class="quest-offer-info">
+        <div class="quest-offer-name">${q.name}</div>
+        <div class="quest-offer-desc">${q.desc}</div>
+        <div class="quest-offer-reward">Награда: ${q.rewardGold}💰 ${q.rewardXP}✨${q.rewardItem ? ' + ' + q.rewardItem.name : ''}</div>
+      </div>
+      <button class="quest-btn" onclick="acceptQuest('${q.id}');this.disabled=true;this.textContent='Принято';">Принять</button>
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+// --- Stealth System ---
+function isPlayerBehindNPC(npc) {
+  const dx = playerBody.position.x - npc.mesh.position.x;
+  const dz = playerBody.position.z - npc.mesh.position.z;
+  const npcFacingX = Math.sin(npc.mesh.rotation.y);
+  const npcFacingZ = Math.cos(npc.mesh.rotation.y);
+  const dot = (dx * npcFacingX + dz * npcFacingZ) / (Math.sqrt(dx*dx+dz*dz) || 1);
+  return dot < -0.3;
+}
+
+function isPlayerInNPCCone(npc, dx, dz) {
+  const npcFacingX = Math.sin(npc.mesh.rotation.y);
+  const npcFacingZ = Math.cos(npc.mesh.rotation.y);
+  const dist = Math.sqrt(dx*dx + dz*dz) || 1;
+  const dot = (dx * npcFacingX + dz * npcFacingZ) / dist;
+  const angle = Math.acos(Math.min(1, Math.max(-1, dot)));
+  return angle < STEALTH_DETECT_CONE;
+}
+
+function updateStealthStatus() {
+  if (!isCrouching) { isStealthed = false; return; }
+  const px = playerBody.position.x, pz = playerBody.position.z;
+  for (let i = 0; i < npcs.length; i++) {
+    const npc = npcs[i];
+    if (!npc.alive) continue;
+    const isEnemy = gameState.faction && FACTION_ENEMIES[gameState.faction]?.includes(npc.faction);
+    if (!isEnemy) continue;
+    const dx = px - npc.mesh.position.x;
+    const dz = pz - npc.mesh.position.z;
+    const dist = Math.sqrt(dx*dx + dz*dz);
+    if (dist < STEALTH_DETECT_RANGE && isPlayerInNPCCone(npc, dx, dz)) {
+      isStealthed = false;
+      return;
+    }
+  }
+  isStealthed = true;
+}
 
 function init() {
   scene = new THREE.Scene();
@@ -1371,14 +1941,19 @@ function createMerchants() {
 
 function getShopItems() {
   return [
-    { name: '🗡️ Меч получше', price: 40, type: 'weapon', effect: 'damage+5' },
-    { name: '🛡️ Щит', price: 30, type: 'shield', effect: 'block+20%' },
-    { name: '❤️ Зелье лечения', price: 15, type: 'heal', effect: 'hp+50' },
-    { name: '⚡ Зелье выносливости', price: 10, type: 'stamina_pot', effect: 'stam+50' },
-    { name: '🦾 Протез руки', price: 80, type: 'prosthetic_arm', effect: 'arm' },
-    { name: '🦿 Протез ноги', price: 80, type: 'prosthetic_leg', effect: 'leg' },
-    { name: '👁️ Повязка на глаз', price: 25, type: 'eyepatch', effect: 'eye' },
-    { name: '🏥 Бинты (остановить кровотечение)', price: 20, type: 'bandage', effect: 'stop_bleed' },
+    { name: '⚔️ Хороший меч (урон 20)', price: 40, type: 'weapon', subtype: 'good_sword' },
+    { name: '🪓 Топор (урон 23)', price: 60, type: 'weapon', subtype: 'axe' },
+    { name: '🔪 Кинжал (урон 13, стелс x1.5)', price: 35, type: 'weapon', subtype: 'dagger' },
+    { name: '🛡️ Простой щит (блок 80%)', price: 30, type: 'shield', subtype: 'basic_shield' },
+    { name: '🛡️ Крепкий щит (блок 90%)', price: 60, type: 'shield', subtype: 'good_shield' },
+    { name: '🧥 Лёгкая броня (защита 10%)', price: 45, type: 'armor', subtype: 'light' },
+    { name: '🛡️ Тяжёлая броня (защита 25%)', price: 90, type: 'armor', subtype: 'heavy' },
+    { name: '❤️ Зелье лечения', price: 15, type: 'consumable', subtype: 'heal' },
+    { name: '⚡ Зелье выносливости', price: 10, type: 'consumable', subtype: 'stamina_pot' },
+    { name: '🏥 Бинты', price: 20, type: 'consumable', subtype: 'bandage' },
+    { name: '🦾 Протез руки', price: 80, type: 'prosthetic_arm' },
+    { name: '🦿 Протез ноги', price: 80, type: 'prosthetic_leg' },
+    { name: '👁️ Повязка на глаз', price: 25, type: 'eyepatch' },
   ];
 }
 
@@ -1414,8 +1989,11 @@ function startGame(faction) {
   document.getElementById('instructions').style.display = 'block';
   document.getElementById('music-volume').style.display = 'block';
   document.getElementById('faction-display').textContent = 'Фракция: ' + FACTION_NAMES[faction];
+  document.getElementById('quest-tracker').style.display = 'block';
 
   isAlive = true;
+  isCrouching = false;
+  isStealthed = false;
   musicInit();
   showMessage('Добро пожаловать, воин! Грабь корованы!', '#c4a44e');
   requestLock();
@@ -1423,12 +2001,12 @@ function startGame(faction) {
 
 // --- Input ---
 function requestLock() {
-  if (!gameState.faction || shopOpen || !isAlive) return;
+  if (!gameState.faction || shopOpen || inventoryOpen || questLogOpen || !isAlive) return;
   renderer.domElement.requestPointerLock();
 }
 
 function onMouseMove(e) {
-  if (!isLocked || shopOpen) return;
+  if (!isLocked || shopOpen || inventoryOpen || questLogOpen) return;
   const sens = 0.002;
   yaw -= e.movementX * sens;
   pitch -= e.movementY * sens;
@@ -1447,9 +2025,19 @@ function onMouseUp(e) {
 
 function onKeyDown(e) {
   if (e.code === 'KeyE') tryInteract();
+  if (e.code === 'KeyI' && !shopOpen) { e.preventDefault(); toggleInventory(); }
+  if (e.code === 'KeyJ' && !shopOpen) { e.preventDefault(); toggleQuestLog(); }
+  if (e.code === 'KeyC' && isAlive && !shopOpen && !inventoryOpen && !questLogOpen) {
+    isCrouching = !isCrouching;
+    if (keys['ShiftLeft']) isCrouching = false; // sprint cancels crouch
+  }
   if (e.code === 'F5') { e.preventDefault(); saveGame(); }
   if (e.code === 'F9') { e.preventDefault(); loadGame(); }
-  if (e.code === 'Escape' && shopOpen) closeShop();
+  if (e.code === 'Escape') {
+    if (shopOpen) closeShop();
+    else if (inventoryOpen) toggleInventory();
+    else if (questLogOpen) toggleQuestLog();
+  }
 }
 
 // --- Combat ---
@@ -1462,14 +2050,15 @@ function performAttack() {
     return;
   }
 
-  attackTimer = ATTACK_COOLDOWN;
+  const weaponStats = getEquippedWeaponStats();
+  attackTimer = weaponStats.cooldown;
   gameState.stamina = Math.max(0, gameState.stamina - 15);
   SFX.swing();
 
   const dir = new THREE.Vector3(0, 0, -1);
   dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
 
-  let damage = ATTACK_DAMAGE;
+  let damage = weaponStats.damage + gameState.baseDamageBonus;
   if (gameState.injuries.leftArm && !gameState.prosthetics.leftArm) damage *= 0.7;
 
   // Check NPCs
@@ -1480,7 +2069,17 @@ function performAttack() {
     const dz = npc.mesh.position.z - playerBody.position.z;
     const dist = Math.sqrt(dx * dx + dz * dz);
     if (dist < ATTACK_RANGE) {
-      npc.health -= damage;
+      let finalDmg = damage;
+
+      // Stealth backstab
+      if (isCrouching && isStealthed && isPlayerBehindNPC(npc)) {
+        finalDmg *= BACKSTAB_MULT * weaponStats.stealthMult;
+        showMessage('🗡️ СКРЫТНАЯ АТАКА!', '#aa66ee');
+        gameState.stealthKills++;
+        addXP(20);
+      }
+
+      npc.health -= finalDmg;
       hit = true;
       SFX.hit();
       if (npc.health <= 0) {
@@ -1521,12 +2120,21 @@ function killNPC(npc) {
   npc.mesh.rotation.x = Math.PI / 2;
   npc.mesh.position.y -= 0.5;
   gameState.kills++;
-  const loot = Math.floor(Math.random() * 15) + 5;
-  gameState.gold += loot;
+  const goldLoot = Math.floor(Math.random() * 15) + 5;
+  gameState.gold += goldLoot;
   SFX.kill();
   SFX.gold();
-  showMessage(`Враг повержен! +${loot} золота`, '#44cc66');
+  showMessage(`Враг повержен! +${goldLoot} золота`, '#44cc66');
   corpses.push({ mesh: npc.mesh, timer: 60 });
+
+  // XP
+  addXP(15 + Math.floor(Math.random() * 10));
+
+  // Loot drops
+  rollLoot(npc.faction).forEach(item => addItemToInventory(item));
+
+  // Quest progress
+  incrementQuestKill(npc.faction);
 
   // Random chance of dismemberment on killing blow
   if (Math.random() < 0.15) {
@@ -1541,6 +2149,11 @@ function robCaravan(caravan) {
   gameState.caravansRobbed++;
   SFX.caravan();
   showMessage(`🎉 КОРОВАН ОГРАБЛЕН! +${caravan.loot} золота!`, '#ffcc00');
+
+  // XP and loot
+  addXP(50);
+  rollLoot('caravan').forEach(item => addItemToInventory(item));
+  incrementQuestRob();
 
   // Respawn caravan after delay
   setTimeout(() => {
@@ -1660,6 +2273,9 @@ function openShop(merchant) {
     div._item = item;
     div._merchant = merchant;
   });
+
+  // Quest section
+  container.insertAdjacentHTML('beforeend', renderShopQuests(merchant));
 }
 
 window.buyItem = function(idx, btn) {
@@ -1679,13 +2295,11 @@ window.buyItem = function(idx, btn) {
   SFX.buy();
 
   switch (item.type) {
-    case 'heal':
-      gameState.health = Math.min(gameState.maxHealth, gameState.health + 50);
-      showMessage('❤️ Здоровье восстановлено!', '#44cc66');
-      break;
-    case 'stamina_pot':
-      gameState.stamina = Math.min(gameState.maxStamina, gameState.stamina + 50);
-      showMessage('⚡ Выносливость восстановлена!', '#44cc66');
+    case 'weapon':
+    case 'shield':
+    case 'armor':
+    case 'consumable':
+      addItemToInventory({ type: item.type, subtype: item.subtype, name: item.name });
       break;
     case 'prosthetic_arm':
       if (gameState.injuries.leftArm && !gameState.prosthetics.leftArm) {
@@ -1713,24 +2327,8 @@ window.buyItem = function(idx, btn) {
         showMessage('Протез не нужен!', '#888');
       }
       break;
-    case 'bandage':
-      if (bleedTimer > 0) {
-        bleedTimer = 0;
-        showMessage('🏥 Кровотечение остановлено!', '#44cc66');
-      } else {
-        gameState.gold += item.price;
-        document.getElementById('shop-gold').textContent = gameState.gold;
-        showMessage('Нет кровотечения!', '#888');
-      }
-      break;
     case 'eyepatch':
       showMessage('👁️ Повязка надета. Стильно!', '#44cc66');
-      break;
-    case 'weapon':
-      showMessage('🗡️ Новый меч! Урон увеличен!', '#44cc66');
-      break;
-    case 'shield':
-      showMessage('🛡️ Щит! Блок усилен!', '#44cc66');
       break;
   }
 };
@@ -1746,9 +2344,22 @@ function closeShop() {
 function updatePlayer(dt) {
   if (!isAlive || !gameState.faction) return;
 
+  // Zone tracking for quests
+  const currentZone = getZone(playerBody.position.x, playerBody.position.z);
+  if (!gameState.visitedZones.includes(currentZone)) {
+    gameState.visitedZones.push(currentZone);
+    showMessage(`📍 Новая зона: ${ZONES[currentZone].name}`, '#c4a44e');
+  }
+
   // Movement
   let speed = MOVE_SPEED;
+  const armorStats = getEquippedArmorStats();
+  speed *= armorStats.speedMult;
+
+  // Sprint cancels crouch
+  if (keys['ShiftLeft'] && isCrouching) isCrouching = false;
   if (keys['ShiftLeft']) speed *= SPRINT_MULT;
+  if (isCrouching) speed *= CROUCH_SPEED_MULT;
 
   // Leg injury penalty
   const legInjured = (gameState.injuries.leftLeg && !gameState.prosthetics.leftLeg) ||
@@ -1826,8 +2437,9 @@ function updatePlayer(dt) {
     }
   });
 
-  // Camera
+  // Camera (lower when crouching)
   camera.position.copy(playerBody.position);
+  if (isCrouching) camera.position.y -= 0.8;
   camera.rotation.order = 'YXZ';
   camera.rotation.y = yaw;
   camera.rotation.x = pitch;
@@ -1863,8 +2475,11 @@ function updateNPCs(dt) {
           npc.mesh.position.z += (pdz / pd) * npc.speed * dt;
           npc.mesh.rotation.y = Math.atan2(pdx, pdz);
         }
-        // Detect player
-        if (isEnemy && dist < 25) npc.state = 'chase';
+        // Detect player (stealth-aware)
+        let detectRange = NORMAL_DETECT_RANGE;
+        if (keys['ShiftLeft'] && (keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD'])) detectRange = SPRINT_DETECT_RANGE;
+        else if (isCrouching) detectRange = STEALTH_DETECT_RANGE;
+        if (isEnemy && dist < detectRange && (!isCrouching || isPlayerInNPCCone(npc, dx, dz))) npc.state = 'chase';
         break;
 
       case 'chase':
@@ -1887,7 +2502,9 @@ function updateNPCs(dt) {
         } else if (npc.attackTimer <= 0) {
           npc.attackTimer = 0.8 + Math.random() * 0.5;
           let dmg = 8 + Math.random() * 7;
-          if (isBlocking) { dmg *= 0.3; SFX.block(); } else { SFX.hurt(); }
+          const playerArmor = getEquippedArmorStats();
+          dmg *= (1 - playerArmor.dmgReduction);
+          if (isBlocking) { dmg *= getEquippedShieldStats().blockMult; SFX.block(); } else { SFX.hurt(); }
           gameState.health -= dmg;
 
           // Random dismemberment chance on hit
@@ -1987,6 +2604,7 @@ function saveGame() {
     py: playerBody.position.y,
     pz: playerBody.position.z,
     yaw, pitch,
+    isCrouching,
     timestamp: Date.now()
   };
   localStorage.setItem('korovany_save', JSON.stringify(save));
@@ -2001,10 +2619,22 @@ function loadGame() {
     return;
   }
   const save = JSON.parse(data);
+  // Ensure new fields have defaults for old saves
+  save.equipment = save.equipment || { weapon: 'basic_sword', shield: 'none', armor: 'none' };
+  save.level = save.level || 1;
+  save.xp = save.xp || 0;
+  save.xpToNext = save.xpToNext || XP_PER_LEVEL;
+  save.baseDamageBonus = save.baseDamageBonus || 0;
+  save.activeQuests = save.activeQuests || [];
+  save.completedQuests = save.completedQuests || [];
+  save.visitedZones = save.visitedZones || [];
+  save.stealthKills = save.stealthKills || 0;
+  save.inventory = save.inventory || [];
   Object.assign(gameState, save);
   playerBody.position.set(save.px, save.py, save.pz);
   yaw = save.yaw || 0;
   pitch = save.pitch || 0;
+  isCrouching = save.isCrouching || false;
 
   document.getElementById('faction-screen').style.display = 'none';
   document.getElementById('hud').style.display = 'block';
@@ -2013,6 +2643,7 @@ function loadGame() {
   document.getElementById('instructions').style.display = 'block';
   document.getElementById('music-volume').style.display = 'block';
   document.getElementById('faction-display').textContent = 'Фракция: ' + FACTION_NAMES[gameState.faction];
+  document.getElementById('quest-tracker').style.display = 'block';
 
   isAlive = true;
   musicInit();
@@ -2046,6 +2677,24 @@ function updateHUD() {
   document.getElementById('stamina-text').textContent = sp + '/' + gameState.maxStamina;
   document.getElementById('gold-display').textContent = '💰 ' + gameState.gold;
   document.getElementById('zone-display').textContent = 'Зона: ' + getZoneName(playerBody.position.x, playerBody.position.z);
+
+  // XP bar
+  const xpPct = gameState.level >= MAX_LEVEL ? 100 : (gameState.xp / gameState.xpToNext * 100);
+  document.getElementById('xp-fill').style.width = xpPct + '%';
+  document.getElementById('xp-text').textContent = gameState.level >= MAX_LEVEL ? 'MAX' : gameState.xp + '/' + gameState.xpToNext + ' XP';
+  document.getElementById('level-display').textContent = 'Уровень: ' + gameState.level;
+
+  // Stealth indicator
+  const stealthEl = document.getElementById('stealth-indicator');
+  if (isCrouching) {
+    stealthEl.textContent = isStealthed ? '👁️ Скрытен' : '👁️ На виду';
+    stealthEl.style.color = isStealthed ? '#44cc66' : '#cc4444';
+  } else {
+    stealthEl.textContent = '';
+  }
+
+  // Quest tracker
+  updateQuestTracker();
 }
 
 // --- Minimap ---
@@ -2162,6 +2811,8 @@ function animate() {
     updateTreeLOD();
     updateInjuries(dt);
     respawnNPCs(dt);
+    updateStealthStatus();
+    checkQuestProgress();
   }
 
   updateHUD();
