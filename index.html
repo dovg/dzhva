@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Грабить Корованы — 3D Action</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: #e0d8c0; }
+canvas { display: block; }
+
+/* Faction Selection Screen */
+#faction-screen {
+  position: fixed; inset: 0; z-index: 100;
+  background: radial-gradient(ellipse at center, #1a1206 0%, #000 70%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+#faction-screen h1 {
+  font-size: 48px; color: #c4a44e; text-shadow: 0 0 20px #c4a44e88;
+  margin-bottom: 8px; letter-spacing: 4px;
+}
+#faction-screen .subtitle {
+  font-size: 18px; color: #887744; margin-bottom: 40px; font-style: italic;
+}
+.faction-cards { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+.faction-card {
+  width: 260px; padding: 24px; border: 2px solid #554422;
+  background: #111008ee; cursor: pointer; transition: all 0.3s;
+  text-align: center; border-radius: 4px;
+}
+.faction-card:hover { border-color: #c4a44e; transform: translateY(-4px); box-shadow: 0 8px 30px #c4a44e33; }
+.faction-card h2 { font-size: 22px; margin-bottom: 6px; }
+.faction-card .fname { font-size: 14px; color: #998866; margin-bottom: 12px; }
+.faction-card p { font-size: 13px; color: #aa9977; line-height: 1.5; }
+.faction-card.elf h2 { color: #44cc66; }
+.faction-card.guard h2 { color: #6699ff; }
+.faction-card.villain h2 { color: #ee4444; }
+#faction-screen .load-btn {
+  margin-top: 30px; padding: 10px 30px; background: none; border: 1px solid #554422;
+  color: #887744; font-family: inherit; font-size: 14px; cursor: pointer;
+}
+#faction-screen .load-btn:hover { border-color: #c4a44e; color: #c4a44e; }
+
+/* HUD */
+#hud { position: fixed; top: 0; left: 0; right: 0; pointer-events: none; z-index: 10; padding: 12px; }
+.hud-bars { display: flex; flex-direction: column; gap: 4px; width: 250px; }
+.bar-wrap { height: 18px; background: #00000088; border: 1px solid #55555588; position: relative; }
+.bar-fill { height: 100%; transition: width 0.3s; }
+.bar-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; text-shadow: 1px 1px 2px #000; }
+#health-fill { background: linear-gradient(90deg, #cc2200, #ee4422); }
+#stamina-fill { background: linear-gradient(90deg, #22aa44, #44cc66); }
+#hud-info { position: fixed; top: 12px; right: 12px; text-align: right; font-size: 13px; z-index: 10; pointer-events: none; }
+#hud-info div { margin-bottom: 4px; text-shadow: 1px 1px 2px #000; }
+
+/* Crosshair */
+#crosshair {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 24px; height: 24px; z-index: 10; pointer-events: none;
+}
+#crosshair::before, #crosshair::after {
+  content: ''; position: absolute; background: #fff8;
+}
+#crosshair::before { width: 2px; height: 24px; left: 11px; top: 0; }
+#crosshair::after { width: 24px; height: 2px; top: 11px; left: 0; }
+
+/* Injury overlay */
+#injury-overlay {
+  position: fixed; inset: 0; z-index: 9; pointer-events: none;
+  background: transparent; transition: background 0.5s;
+}
+#eye-injury {
+  position: fixed; top: 0; left: 0; width: 50%; height: 100%;
+  background: #000; z-index: 9; pointer-events: none; display: none;
+}
+
+/* Minimap */
+#minimap {
+  position: fixed; bottom: 12px; right: 12px; width: 160px; height: 160px;
+  border: 2px solid #554422; background: #111008; z-index: 10; pointer-events: none;
+}
+#minimap canvas { width: 100%; height: 100%; }
+
+/* Shop UI */
+#shop-ui {
+  position: fixed; inset: 0; z-index: 50; display: none;
+  background: #000000dd; align-items: center; justify-content: center;
+}
+#shop-ui.active { display: flex; }
+#shop-panel {
+  background: #1a1508; border: 2px solid #554422; padding: 24px; min-width: 400px; max-width: 500px;
+  max-height: 80vh; overflow-y: auto;
+}
+#shop-panel h2 { color: #c4a44e; margin-bottom: 4px; }
+#shop-panel .gold-display { color: #ccaa44; margin-bottom: 16px; font-size: 14px; }
+.shop-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px; border-bottom: 1px solid #332211; cursor: pointer;
+}
+.shop-item:hover { background: #221a0a; }
+.shop-item .item-name { flex: 1; }
+.shop-item .item-price { color: #ccaa44; margin-left: 12px; }
+.shop-item .item-btn {
+  margin-left: 12px; padding: 4px 12px; background: #332211; border: 1px solid #554422;
+  color: #c4a44e; cursor: pointer; font-family: inherit; font-size: 12px;
+}
+.shop-item .item-btn:hover { background: #443322; }
+#shop-close {
+  margin-top: 16px; padding: 8px 24px; background: none; border: 1px solid #554422;
+  color: #887744; font-family: inherit; cursor: pointer; font-size: 14px;
+}
+#shop-close:hover { border-color: #c4a44e; color: #c4a44e; }
+
+/* Messages */
+#messages {
+  position: fixed; bottom: 60px; left: 12px; z-index: 10; pointer-events: none;
+  font-size: 14px; text-shadow: 1px 1px 3px #000;
+}
+#messages div { margin-bottom: 4px; animation: fadeMsg 4s forwards; }
+@keyframes fadeMsg { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Death screen */
+#death-screen {
+  position: fixed; inset: 0; z-index: 60; display: none;
+  background: #000000ee; align-items: center; justify-content: center;
+  flex-direction: column;
+}
+#death-screen.active { display: flex; }
+#death-screen h1 { color: #cc2200; font-size: 48px; margin-bottom: 20px; }
+#death-screen button {
+  padding: 12px 30px; background: none; border: 2px solid #cc2200;
+  color: #cc2200; font-family: inherit; font-size: 18px; cursor: pointer;
+}
+#death-screen button:hover { background: #cc220033; }
+
+/* Instructions overlay */
+#instructions {
+  position: fixed; bottom: 12px; left: 12px; z-index: 10; pointer-events: none;
+  font-size: 11px; color: #776655; line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<!-- Faction Selection -->
+<div id="faction-screen">
+  <h1>ГРАБИТЬ КОРОВАНЫ</h1>
+  <div class="subtitle">Выбери свою фракцию, воин</div>
+  <div class="faction-cards">
+    <div class="faction-card elf" onclick="startGame('elf')">
+      <h2>🌿 Лесные Эльфы</h2>
+      <div class="fname">Защитники леса</div>
+      <p>Живи в лесу, защищай природу. Граби караваны императора. Сражайся с охраной дворца и силами зла.</p>
+    </div>
+    <div class="faction-card guard" onclick="startGame('guard')">
+      <h2>⚔️ Охрана Дворца</h2>
+      <div class="fname">Имперская стража</div>
+      <p>Служи императору, защищай дворец. Выполняй приказы командира. Подавляй эльфов и злодеев.</p>
+    </div>
+    <div class="faction-card villain" onclick="startGame('villain')">
+      <h2>💀 Злой</h2>
+      <div class="fname">Повелитель тьмы</div>
+      <p>Командуй войсками тьмы. Засылай шпионов. Атакуй дворец. Сражайся с эльфами-партизанами.</p>
+    </div>
+  </div>
+  <button class="load-btn" onclick="loadGame()">📜 Загрузить сохранение</button>
+</div>
+
+<!-- HUD -->
+<div id="hud" style="display:none">
+  <div class="hud-bars">
+    <div class="bar-wrap"><div id="health-fill" class="bar-fill" style="width:100%"></div><div class="bar-label">❤️ <span id="health-text">100/100</span></div></div>
+    <div class="bar-wrap"><div id="stamina-fill" class="bar-fill" style="width:100%"></div><div class="bar-label">⚡ <span id="stamina-text">100/100</span></div></div>
+  </div>
+</div>
+<div id="hud-info" style="display:none">
+  <div id="gold-display">💰 0</div>
+  <div id="zone-display">Зона: —</div>
+  <div id="faction-display">Фракция: —</div>
+  <div id="injuries-display"></div>
+</div>
+
+<div id="crosshair" style="display:none"></div>
+<div id="injury-overlay"></div>
+<div id="eye-injury"></div>
+
+<div id="minimap"><canvas id="minimap-canvas" width="160" height="160"></canvas></div>
+
+<div id="shop-ui">
+  <div id="shop-panel">
+    <h2>🏪 Торговец</h2>
+    <div class="gold-display">Ваше золото: <span id="shop-gold">0</span></div>
+    <div id="shop-items"></div>
+    <button id="shop-close" onclick="closeShop()">Закрыть [E]</button>
+  </div>
+</div>
+
+<div id="death-screen">
+  <h1>ТЫ ПОГИБ</h1>
+  <p style="margin-bottom:20px;color:#aa6644">Твоё тело осталось лежать на поле боя...</p>
+  <button onclick="respawn()">Возродиться</button>
+</div>
+
+<div id="messages"></div>
+<div id="instructions" style="display:none">
+  WASD — движение | Мышь — обзор | ПКМ — блок<br>
+  ЛКМ — атака | Space — прыжок | E — взаимодействие<br>
+  F5 — сохранить | F9 — загрузить
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================
+// ГРАБИТЬ КОРОВАНЫ — Game Engine
+// ============================================================
+
+// --- Constants ---
+const WORLD_SIZE = 600;
+const HALF_WORLD = WORLD_SIZE / 2;
+const ZONE_SIZE = HALF_WORLD;
+const TREE_COUNT = 300;
+const NPC_COUNT = 20;
+const CARAVAN_COUNT = 3;
+const LOD_DISTANCE = 60;
+const GRAVITY = -25;
+const JUMP_FORCE = 10;
+const MOVE_SPEED = 14;
+const SPRINT_MULT = 1.6;
+const ATTACK_RANGE = 4;
+const ATTACK_DAMAGE = 15;
+const ATTACK_COOLDOWN = 0.5;
+
+// Zone centers
+const ZONES = {
+  town:    { center: new THREE.Vector2(-HALF_WORLD/2, -HALF_WORLD/2), color: 0x8B7355, name: 'Деревня людей' },
+  palace:  { center: new THREE.Vector2( HALF_WORLD/2, -HALF_WORLD/2), color: 0x6B6B8D, name: 'Дворец императора' },
+  forest:  { center: new THREE.Vector2(-HALF_WORLD/2,  HALF_WORLD/2), color: 0x2D5A1E, name: 'Лес эльфов' },
+  mountain:{ center: new THREE.Vector2( HALF_WORLD/2,  HALF_WORLD/2), color: 0x4A3728, name: 'Горный форт злого' }
+};
+
+const FACTION_SPAWNS = {
+  elf:     { x: -HALF_WORLD/2, z: HALF_WORLD/2 + 20 },
+  guard:   { x: HALF_WORLD/2 + 20,  z: -HALF_WORLD/2 + 20 },
+  villain: { x: HALF_WORLD/2 + 20,  z: HALF_WORLD/2 + 20 }
+};
+
+const FACTION_ENEMIES = {
+  elf:     ['guard', 'villain'],
+  guard:   ['elf', 'villain'],
+  villain: ['elf', 'guard']
+};
+
+const FACTION_NAMES = { elf: 'Эльфы', guard: 'Охрана', villain: 'Злой' };
+const FACTION_COLORS = { elf: 0x44cc66, guard: 0x6699ff, villain: 0xee4444, neutral: 0xccaa44 };
+
+// --- Game State ---
+let gameState = {
+  faction: null,
+  health: 100, maxHealth: 100,
+  stamina: 100, maxStamina: 100,
+  gold: 50,
+  injuries: { leftArm: false, rightArm: false, leftEye: false, rightEye: false, leftLeg: false, rightLeg: false },
+  prosthetics: { leftArm: false, rightArm: false, leftLeg: false, rightLeg: false },
+  inventory: [],
+  kills: 0,
+  caravansRobbed: 0
+};
+
+// --- Three.js Setup ---
+let scene, camera, renderer, clock;
+let playerBody = { position: new THREE.Vector3(0, 2, 0), velocity: new THREE.Vector3(), onGround: false };
+let yaw = 0, pitch = 0;
+let keys = {};
+let isLocked = false;
+let attackTimer = 0;
+let isBlocking = false;
+let bleedTimer = 0;
+let isAlive = true;
+let shopOpen = false;
+
+// Object pools
+let trees3D = [];
+let treeBillboards = [];
+let npcs = [];
+let caravans = [];
+let corpses = [];
+let buildings = [];
+let merchants = [];
+
+// Heightmap
+let heightData;
+
+function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87CEEB);
+  scene.fog = new THREE.Fog(0x87CEEB, 100, 350);
+
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  document.body.appendChild(renderer.domElement);
+
+  clock = new THREE.Clock();
+
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0x6688aa, 0.5);
+  scene.add(ambientLight);
+
+  const sunLight = new THREE.DirectionalLight(0xffeedd, 1.0);
+  sunLight.position.set(100, 120, 50);
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.width = 2048;
+  sunLight.shadow.mapSize.height = 2048;
+  sunLight.shadow.camera.left = -150;
+  sunLight.shadow.camera.right = 150;
+  sunLight.shadow.camera.top = 150;
+  sunLight.shadow.camera.bottom = -150;
+  scene.add(sunLight);
+
+  // Generate heightmap
+  generateHeightmap();
+
+  // Terrain
+  createTerrain();
+
+  // Trees
+  createTrees();
+
+  // Buildings
+  createBuildings();
+
+  // NPCs
+  createNPCs();
+
+  // Caravans
+  createCaravans();
+
+  // Merchants
+  createMerchants();
+
+  // Sky dome hint
+  createSky();
+
+  // Events
+  window.addEventListener('resize', onResize);
+  document.addEventListener('keydown', e => { keys[e.code] = true; onKeyDown(e); });
+  document.addEventListener('keyup', e => keys[e.code] = false);
+  document.addEventListener('mousedown', onMouseDown);
+  document.addEventListener('mouseup', onMouseUp);
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('click', requestLock);
+  document.addEventListener('pointerlockchange', () => { isLocked = !!document.pointerLockElement; });
+
+  animate();
+}
+
+function generateHeightmap() {
+  const res = 128;
+  heightData = new Float32Array(res * res);
+  for (let i = 0; i < res; i++) {
+    for (let j = 0; j < res; j++) {
+      const wx = (i / res - 0.5) * WORLD_SIZE;
+      const wz = (j / res - 0.5) * WORLD_SIZE;
+      let h = 0;
+      // Mountain zone (top-right)
+      const mx = wx - HALF_WORLD/2, mz = wz - HALF_WORLD/2;
+      const md = Math.sqrt(mx*mx + mz*mz);
+      if (md < ZONE_SIZE * 0.8) {
+        h += Math.max(0, (1 - md / (ZONE_SIZE * 0.8))) * 30;
+        h += (Math.sin(wx * 0.05) * Math.cos(wz * 0.07) + 1) * 5;
+      }
+      // General gentle hills
+      h += (Math.sin(wx * 0.02) * Math.cos(wz * 0.015) + 1) * 2;
+      heightData[i * res + j] = h;
+    }
+  }
+}
+
+function getHeight(x, z) {
+  const res = 128;
+  const i = ((x / WORLD_SIZE + 0.5) * res) | 0;
+  const j = ((z / WORLD_SIZE + 0.5) * res) | 0;
+  const ci = Math.max(0, Math.min(res - 1, i));
+  const cj = Math.max(0, Math.min(res - 1, j));
+  return heightData[ci * res + cj] || 0;
+}
+
+function createTerrain() {
+  const geo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 127, 127);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i);
+    const h = getHeight(x, z);
+    pos.setY(i, h);
+
+    // Zone coloring
+    let color = new THREE.Color(0x558844); // default green
+    const zone = getZone(x, z);
+    if (zone) color = new THREE.Color(ZONES[zone].color);
+
+    // Blend edges
+    colors[i * 3] = color.r;
+    colors[i * 3 + 1] = color.g;
+    colors[i * 3 + 2] = color.b;
+  }
+
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+  const terrain = new THREE.Mesh(geo, mat);
+  terrain.receiveShadow = true;
+  scene.add(terrain);
+}
+
+function getZone(x, z) {
+  if (x < 0 && z < 0) return 'town';
+  if (x >= 0 && z < 0) return 'palace';
+  if (x < 0 && z >= 0) return 'forest';
+  return 'mountain';
+}
+
+function getZoneName(x, z) {
+  const zone = getZone(x, z);
+  return ZONES[zone]?.name || 'Неизвестно';
+}
+
+// --- LOD Trees ---
+function createTrees() {
+  const treePositions = [];
+  for (let i = 0; i < TREE_COUNT; i++) {
+    const x = (Math.random() - 0.5) * WORLD_SIZE * 0.95;
+    const z = (Math.random() - 0.5) * WORLD_SIZE * 0.95;
+    const zone = getZone(x, z);
+    // More trees in forest zone
+    if (zone !== 'forest' && Math.random() > 0.4) { i--; continue; }
+    // Fewer in palace zone
+    if (zone === 'palace' && Math.random() > 0.3) { i--; continue; }
+    const y = getHeight(x, z);
+    const scale = 0.8 + Math.random() * 0.6;
+    treePositions.push({ x, y, z, scale, zone });
+  }
+
+  // 3D trees (shown when close)
+  treePositions.forEach(tp => {
+    const treeGroup = new THREE.Group();
+
+    // Trunk
+    const trunkGeo = new THREE.CylinderGeometry(0.3 * tp.scale, 0.5 * tp.scale, 4 * tp.scale, 6);
+    const trunkColor = tp.zone === 'forest' ? 0x5c3a1e : 0x6b4226;
+    const trunkMat = new THREE.MeshLambertMaterial({ color: trunkColor });
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.y = 2 * tp.scale;
+    trunk.castShadow = true;
+    treeGroup.add(trunk);
+
+    // Foliage (cone)
+    const leafGeo = new THREE.ConeGeometry(2.5 * tp.scale, 5 * tp.scale, 7);
+    const leafColor = tp.zone === 'forest' ? 0x1a6b1a : (tp.zone === 'mountain' ? 0x2d4a2d : 0x338833);
+    const leafMat = new THREE.MeshLambertMaterial({ color: leafColor });
+    const leaf = new THREE.Mesh(leafGeo, leafMat);
+    leaf.position.y = 5.5 * tp.scale;
+    leaf.castShadow = true;
+    treeGroup.add(leaf);
+
+    treeGroup.position.set(tp.x, tp.y, tp.z);
+    treeGroup.visible = false;
+    scene.add(treeGroup);
+    trees3D.push(treeGroup);
+
+    // Billboard sprite (shown when far)
+    const canvas = document.createElement('canvas');
+    canvas.width = 64; canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    // Draw simple tree
+    ctx.fillStyle = '#6b4226';
+    ctx.fillRect(28, 70, 8, 58);
+    ctx.fillStyle = tp.zone === 'forest' ? '#1a7a1a' : '#338833';
+    ctx.beginPath();
+    ctx.moveTo(32, 5);
+    ctx.lineTo(6, 75);
+    ctx.lineTo(58, 75);
+    ctx.fill();
+
+    const tex = new THREE.CanvasTexture(canvas);
+    const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.scale.set(5 * tp.scale, 10 * tp.scale, 1);
+    sprite.position.set(tp.x, tp.y + 5 * tp.scale, tp.z);
+    sprite.visible = true;
+    scene.add(sprite);
+    treeBillboards.push(sprite);
+  });
+}
+
+function updateTreeLOD() {
+  const px = playerBody.position.x, pz = playerBody.position.z;
+  for (let i = 0; i < trees3D.length; i++) {
+    const t = trees3D[i];
+    const dx = t.position.x - px, dz = t.position.z - pz;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    const close = dist < LOD_DISTANCE;
+    t.visible = close;
+    treeBillboards[i].visible = !close && dist < 300;
+  }
+}
+
+// --- Buildings ---
+function createBuildings() {
+  // Town buildings
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    const r = 20 + Math.random() * 15;
+    const x = ZONES.town.center.x + Math.cos(angle) * r;
+    const z = ZONES.town.center.y + Math.sin(angle) * r;
+    createWoodenHut(x, z, 0xA0826D);
+  }
+
+  // Palace
+  createPalace(ZONES.palace.center.x, ZONES.palace.center.y);
+
+  // Forest huts
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2;
+    const r = 15 + Math.random() * 10;
+    const x = ZONES.forest.center.x + Math.cos(angle) * r;
+    const z = ZONES.forest.center.y + Math.sin(angle) * r;
+    createWoodenHut(x, z, 0x5C3D2E);
+  }
+
+  // Villain fort
+  createFort(ZONES.mountain.center.x, ZONES.mountain.center.y);
+}
+
+function createWoodenHut(x, z, color) {
+  const y = getHeight(x, z);
+  const g = new THREE.Group();
+
+  // Walls
+  const wallGeo = new THREE.BoxGeometry(5, 3, 5);
+  const wallMat = new THREE.MeshLambertMaterial({ color });
+  const walls = new THREE.Mesh(wallGeo, wallMat);
+  walls.position.y = 1.5;
+  walls.castShadow = true;
+  walls.receiveShadow = true;
+  g.add(walls);
+
+  // Roof
+  const roofGeo = new THREE.ConeGeometry(4.2, 2, 4);
+  const roofMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+  const roof = new THREE.Mesh(roofGeo, roofMat);
+  roof.position.y = 4;
+  roof.rotation.y = Math.PI / 4;
+  roof.castShadow = true;
+  g.add(roof);
+
+  // Door
+  const doorGeo = new THREE.PlaneGeometry(1.2, 2);
+  const doorMat = new THREE.MeshLambertMaterial({ color: 0x3a2010 });
+  const door = new THREE.Mesh(doorGeo, doorMat);
+  door.position.set(0, 1, 2.51);
+  g.add(door);
+
+  g.position.set(x, y, z);
+  g.rotation.y = Math.random() * Math.PI * 2;
+  scene.add(g);
+  buildings.push({ mesh: g, type: 'hut' });
+}
+
+function createPalace(x, z) {
+  const y = getHeight(x, z);
+  const g = new THREE.Group();
+
+  // Main building
+  const mainGeo = new THREE.BoxGeometry(20, 10, 15);
+  const mainMat = new THREE.MeshLambertMaterial({ color: 0x9999aa });
+  const main = new THREE.Mesh(mainGeo, mainMat);
+  main.position.y = 5;
+  main.castShadow = true;
+  g.add(main);
+
+  // Towers
+  for (let dx of [-10, 10]) {
+    for (let dz of [-7, 7]) {
+      const towerGeo = new THREE.CylinderGeometry(2, 2.5, 14, 8);
+      const towerMat = new THREE.MeshLambertMaterial({ color: 0x8888aa });
+      const tower = new THREE.Mesh(towerGeo, towerMat);
+      tower.position.set(dx, 7, dz);
+      tower.castShadow = true;
+      g.add(tower);
+
+      // Tower top
+      const topGeo = new THREE.ConeGeometry(2.8, 3, 8);
+      const topMat = new THREE.MeshLambertMaterial({ color: 0x4444aa });
+      const top = new THREE.Mesh(topGeo, topMat);
+      top.position.set(dx, 15, dz);
+      g.add(top);
+    }
+  }
+
+  // Flag
+  const poleGeo = new THREE.CylinderGeometry(0.1, 0.1, 6, 4);
+  const poleMat = new THREE.MeshLambertMaterial({ color: 0xcccccc });
+  const pole = new THREE.Mesh(poleGeo, poleMat);
+  pole.position.y = 13;
+  g.add(pole);
+
+  const flagGeo = new THREE.PlaneGeometry(3, 2);
+  const flagMat = new THREE.MeshLambertMaterial({ color: 0x2244aa, side: THREE.DoubleSide });
+  const flag = new THREE.Mesh(flagGeo, flagMat);
+  flag.position.set(1.5, 15, 0);
+  g.add(flag);
+
+  g.position.set(x, y, z);
+  scene.add(g);
+  buildings.push({ mesh: g, type: 'palace' });
+}
+
+function createFort(x, z) {
+  const y = getHeight(x, z);
+  const g = new THREE.Group();
+
+  // Walls
+  const wallGeo = new THREE.BoxGeometry(18, 8, 18);
+  const wallMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+  const walls = new THREE.Mesh(wallGeo, wallMat);
+  walls.position.y = 4;
+  walls.castShadow = true;
+  g.add(walls);
+
+  // Inner keep
+  const keepGeo = new THREE.BoxGeometry(8, 12, 8);
+  const keepMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+  const keep = new THREE.Mesh(keepGeo, keepMat);
+  keep.position.y = 6;
+  keep.castShadow = true;
+  g.add(keep);
+
+  // Spikes
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const spikeGeo = new THREE.ConeGeometry(0.5, 4, 4);
+    const spikeMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+    const spike = new THREE.Mesh(spikeGeo, spikeMat);
+    spike.position.set(Math.cos(angle) * 9, 10, Math.sin(angle) * 9);
+    g.add(spike);
+  }
+
+  // Lava glow (emissive floor)
+  const lavaGeo = new THREE.PlaneGeometry(16, 16);
+  const lavaMat = new THREE.MeshBasicMaterial({ color: 0x661100, transparent: true, opacity: 0.3 });
+  const lava = new THREE.Mesh(lavaGeo, lavaMat);
+  lava.rotation.x = -Math.PI / 2;
+  lava.position.y = 0.1;
+  g.add(lava);
+
+  g.position.set(x, y, z);
+  scene.add(g);
+  buildings.push({ mesh: g, type: 'fort' });
+}
+
+// --- Character Model ---
+function createCharacterModel(faction, isPlayer) {
+  const g = new THREE.Group();
+  const color = FACTION_COLORS[faction] || 0xcccccc;
+  const skinColor = faction === 'elf' ? 0xc4b090 : 0xd4a574;
+
+  // Body
+  const bodyGeo = new THREE.BoxGeometry(1, 1.5, 0.6);
+  const bodyMat = new THREE.MeshLambertMaterial({ color });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 1.2;
+  body.castShadow = true;
+  g.add(body);
+  g.userData.body = body;
+
+  // Head
+  const headGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+  const headMat = new THREE.MeshLambertMaterial({ color: skinColor });
+  const head = new THREE.Mesh(headGeo, headMat);
+  head.position.y = 2.3;
+  head.castShadow = true;
+  g.add(head);
+  g.userData.head = head;
+
+  // Eyes
+  for (let side of [-1, 1]) {
+    const eyeGeo = new THREE.BoxGeometry(0.12, 0.12, 0.1);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: faction === 'villain' ? 0xff0000 : 0x222222 });
+    const eye = new THREE.Mesh(eyeGeo, eyeMat);
+    eye.position.set(side * 0.15, 2.35, 0.3);
+    g.add(eye);
+  }
+
+  // Arms
+  for (let side of [-1, 1]) {
+    const armGeo = new THREE.BoxGeometry(0.3, 1.2, 0.3);
+    const armMat = new THREE.MeshLambertMaterial({ color });
+    const arm = new THREE.Mesh(armGeo, armMat);
+    arm.position.set(side * 0.65, 1.2, 0);
+    arm.castShadow = true;
+    g.add(arm);
+    if (side === -1) g.userData.leftArm = arm;
+    else g.userData.rightArm = arm;
+  }
+
+  // Legs
+  for (let side of [-1, 1]) {
+    const legGeo = new THREE.BoxGeometry(0.35, 1, 0.35);
+    const legMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    const leg = new THREE.Mesh(legGeo, legMat);
+    leg.position.set(side * 0.25, 0.3, 0);
+    leg.castShadow = true;
+    g.add(leg);
+    if (side === -1) g.userData.leftLeg = leg;
+    else g.userData.rightLeg = leg;
+  }
+
+  // Weapon
+  const wpnGeo = new THREE.BoxGeometry(0.15, 1.5, 0.15);
+  const wpnMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa });
+  const wpn = new THREE.Mesh(wpnGeo, wpnMat);
+  wpn.position.set(0.65, 1.8, 0.3);
+  wpn.rotation.x = -0.3;
+  g.add(wpn);
+  g.userData.weapon = wpn;
+
+  // Elf ears
+  if (faction === 'elf') {
+    for (let side of [-1, 1]) {
+      const earGeo = new THREE.ConeGeometry(0.1, 0.4, 4);
+      const earMat = new THREE.MeshLambertMaterial({ color: skinColor });
+      const ear = new THREE.Mesh(earGeo, earMat);
+      ear.position.set(side * 0.35, 2.5, 0);
+      ear.rotation.z = side * 0.5;
+      g.add(ear);
+    }
+  }
+
+  // Villain horns
+  if (faction === 'villain') {
+    for (let side of [-1, 1]) {
+      const hornGeo = new THREE.ConeGeometry(0.1, 0.5, 5);
+      const hornMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+      const horn = new THREE.Mesh(hornGeo, hornMat);
+      horn.position.set(side * 0.2, 2.7, 0);
+      horn.rotation.z = side * 0.3;
+      g.add(horn);
+    }
+  }
+
+  return g;
+}
+
+// --- NPCs ---
+function createNPCs() {
+  const factions = ['elf', 'guard', 'villain', 'neutral'];
+  for (let i = 0; i < NPC_COUNT; i++) {
+    const faction = factions[i % factions.length];
+    let spawn;
+    switch (faction) {
+      case 'elf': spawn = ZONES.forest.center; break;
+      case 'guard': spawn = ZONES.palace.center; break;
+      case 'villain': spawn = ZONES.mountain.center; break;
+      default: spawn = ZONES.town.center;
+    }
+
+    const x = spawn.x + (Math.random() - 0.5) * 60;
+    const z = spawn.y + (Math.random() - 0.5) * 60;
+    const y = getHeight(x, z);
+
+    const model = createCharacterModel(faction);
+    model.position.set(x, y, z);
+    scene.add(model);
+
+    npcs.push({
+      mesh: model,
+      faction,
+      health: 80,
+      maxHealth: 80,
+      alive: true,
+      target: null,
+      patrolCenter: new THREE.Vector2(x, z),
+      patrolAngle: Math.random() * Math.PI * 2,
+      state: 'patrol', // patrol, chase, attack
+      attackTimer: 0,
+      speed: 3 + Math.random() * 2
+    });
+  }
+}
+
+// --- Caravans ---
+function createCaravans() {
+  const routes = [
+    [ZONES.town.center, ZONES.palace.center],
+    [ZONES.town.center, ZONES.forest.center],
+    [ZONES.palace.center, ZONES.mountain.center]
+  ];
+
+  routes.forEach((route, idx) => {
+    const g = new THREE.Group();
+
+    // Cart body
+    const cartGeo = new THREE.BoxGeometry(3, 1.5, 2);
+    const cartMat = new THREE.MeshLambertMaterial({ color: 0x8B6914 });
+    const cart = new THREE.Mesh(cartGeo, cartMat);
+    cart.position.y = 1.2;
+    cart.castShadow = true;
+    g.add(cart);
+
+    // Wheels
+    for (let dx of [-1.2, 1.2]) {
+      for (let dz of [-1, 1]) {
+        const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 8);
+        const wheelMat = new THREE.MeshLambertMaterial({ color: 0x4a3010 });
+        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+        wheel.position.set(dx, 0.5, dz);
+        wheel.rotation.x = Math.PI / 2;
+        g.add(wheel);
+      }
+    }
+
+    // Cargo
+    const cargoGeo = new THREE.BoxGeometry(2, 1, 1.5);
+    const cargoMat = new THREE.MeshLambertMaterial({ color: 0xccaa44 });
+    const cargo = new THREE.Mesh(cargoGeo, cargoMat);
+    cargo.position.y = 2.3;
+    g.add(cargo);
+
+    // Guards
+    for (let gi = 0; gi < 2; gi++) {
+      const guard = createCharacterModel('neutral');
+      guard.position.set(gi * 3 - 1.5, 0, 2.5);
+      guard.scale.set(0.7, 0.7, 0.7);
+      g.add(guard);
+    }
+
+    const startPos = new THREE.Vector3(route[0].x, 0, route[0].y);
+    const endPos = new THREE.Vector3(route[1].x, 0, route[1].y);
+    startPos.y = getHeight(startPos.x, startPos.z);
+    endPos.y = getHeight(endPos.x, endPos.z);
+    g.position.copy(startPos);
+    scene.add(g);
+
+    caravans.push({
+      mesh: g,
+      start: startPos.clone(),
+      end: endPos.clone(),
+      progress: 0,
+      speed: 0.03 + Math.random() * 0.02,
+      direction: 1,
+      health: 100,
+      alive: true,
+      loot: 30 + Math.floor(Math.random() * 50),
+      guards: [
+        { health: 60, alive: true, faction: 'neutral' },
+        { health: 60, alive: true, faction: 'neutral' }
+      ]
+    });
+  });
+}
+
+// --- Merchants ---
+function createMerchants() {
+  const merchantPositions = [
+    { x: ZONES.town.center.x + 5, z: ZONES.town.center.y + 5, zone: 'town' },
+    { x: ZONES.palace.center.x - 10, z: ZONES.palace.center.y + 5, zone: 'palace' },
+    { x: ZONES.forest.center.x + 8, z: ZONES.forest.center.y - 5, zone: 'forest' },
+  ];
+
+  merchantPositions.forEach(mp => {
+    const model = createCharacterModel('neutral');
+    const y = getHeight(mp.x, mp.z);
+    model.position.set(mp.x, y, mp.z);
+
+    // Add merchant hat
+    const hatGeo = new THREE.CylinderGeometry(0.5, 0.6, 0.4, 8);
+    const hatMat = new THREE.MeshLambertMaterial({ color: 0x884400 });
+    const hat = new THREE.Mesh(hatGeo, hatMat);
+    hat.position.y = 2.7;
+    model.add(hat);
+
+    scene.add(model);
+    merchants.push({
+      mesh: model,
+      zone: mp.zone,
+      items: getShopItems()
+    });
+  });
+}
+
+function getShopItems() {
+  return [
+    { name: '🗡️ Меч получше', price: 40, type: 'weapon', effect: 'damage+5' },
+    { name: '🛡️ Щит', price: 30, type: 'shield', effect: 'block+20%' },
+    { name: '❤️ Зелье лечения', price: 15, type: 'heal', effect: 'hp+50' },
+    { name: '⚡ Зелье выносливости', price: 10, type: 'stamina_pot', effect: 'stam+50' },
+    { name: '🦾 Протез руки', price: 80, type: 'prosthetic_arm', effect: 'arm' },
+    { name: '🦿 Протез ноги', price: 80, type: 'prosthetic_leg', effect: 'leg' },
+    { name: '👁️ Повязка на глаз', price: 25, type: 'eyepatch', effect: 'eye' },
+    { name: '🏥 Бинты (остановить кровотечение)', price: 20, type: 'bandage', effect: 'stop_bleed' },
+  ];
+}
+
+// --- Sky ---
+function createSky() {
+  const skyGeo = new THREE.SphereGeometry(400, 16, 12);
+  const skyMat = new THREE.MeshBasicMaterial({
+    color: 0x87CEEB,
+    side: THREE.BackSide,
+  });
+  const sky = new THREE.Mesh(skyGeo, skyMat);
+  scene.add(sky);
+
+  // Sun
+  const sunGeo = new THREE.SphereGeometry(10, 8, 8);
+  const sunMat = new THREE.MeshBasicMaterial({ color: 0xffee88 });
+  const sun = new THREE.Mesh(sunGeo, sunMat);
+  sun.position.set(100, 120, 50);
+  scene.add(sun);
+}
+
+// --- Game Start ---
+function startGame(faction) {
+  gameState.faction = faction;
+  const spawn = FACTION_SPAWNS[faction];
+  playerBody.position.set(spawn.x, getHeight(spawn.x, spawn.z) + 2, spawn.z);
+  playerBody.velocity.set(0, 0, 0);
+
+  document.getElementById('faction-screen').style.display = 'none';
+  document.getElementById('hud').style.display = 'block';
+  document.getElementById('hud-info').style.display = 'block';
+  document.getElementById('crosshair').style.display = 'block';
+  document.getElementById('instructions').style.display = 'block';
+  document.getElementById('faction-display').textContent = 'Фракция: ' + FACTION_NAMES[faction];
+
+  isAlive = true;
+  showMessage('Добро пожаловать, воин! Грабь корованы!', '#c4a44e');
+  requestLock();
+}
+
+// --- Input ---
+function requestLock() {
+  if (!gameState.faction || shopOpen || !isAlive) return;
+  renderer.domElement.requestPointerLock();
+}
+
+function onMouseMove(e) {
+  if (!isLocked || shopOpen) return;
+  const sens = 0.002;
+  yaw -= e.movementX * sens;
+  pitch -= e.movementY * sens;
+  pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+}
+
+function onMouseDown(e) {
+  if (!isLocked || shopOpen || !isAlive) return;
+  if (e.button === 0) performAttack();
+  if (e.button === 2) isBlocking = true;
+}
+
+function onMouseUp(e) {
+  if (e.button === 2) isBlocking = false;
+}
+
+function onKeyDown(e) {
+  if (e.code === 'KeyE') tryInteract();
+  if (e.code === 'F5') { e.preventDefault(); saveGame(); }
+  if (e.code === 'F9') { e.preventDefault(); loadGame(); }
+  if (e.code === 'Escape' && shopOpen) closeShop();
+}
+
+// --- Combat ---
+function performAttack() {
+  if (attackTimer > 0) return;
+  if (gameState.stamina < 10) return;
+  if (gameState.injuries.rightArm && !gameState.prosthetics.rightArm) {
+    showMessage('Правая рука потеряна! Нужен протез!', '#cc2200');
+    return;
+  }
+
+  attackTimer = ATTACK_COOLDOWN;
+  gameState.stamina = Math.max(0, gameState.stamina - 15);
+
+  const dir = new THREE.Vector3(0, 0, -1);
+  dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+
+  let damage = ATTACK_DAMAGE;
+  if (gameState.injuries.leftArm && !gameState.prosthetics.leftArm) damage *= 0.7;
+
+  // Check NPCs
+  let hit = false;
+  npcs.forEach(npc => {
+    if (!npc.alive) return;
+    const dx = npc.mesh.position.x - playerBody.position.x;
+    const dz = npc.mesh.position.z - playerBody.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist < ATTACK_RANGE) {
+      npc.health -= damage;
+      hit = true;
+      if (npc.health <= 0) {
+        killNPC(npc);
+      } else {
+        npc.state = 'chase';
+        npc.target = playerBody.position;
+        showMessage(`Удар! ${npc.faction} HP: ${Math.ceil(npc.health)}`, '#ffaa44');
+      }
+    }
+  });
+
+  // Check caravans
+  caravans.forEach(c => {
+    if (!c.alive) return;
+    const dx = c.mesh.position.x - playerBody.position.x;
+    const dz = c.mesh.position.z - playerBody.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist < ATTACK_RANGE + 2) {
+      c.health -= damage;
+      hit = true;
+      if (c.health <= 0) {
+        robCaravan(c);
+      } else {
+        showMessage(`Атака каравана! HP: ${Math.ceil(c.health)}`, '#ffaa44');
+      }
+    }
+  });
+
+  if (!hit) {
+    // Swing animation hint
+  }
+}
+
+function killNPC(npc) {
+  npc.alive = false;
+  npc.mesh.rotation.x = Math.PI / 2;
+  npc.mesh.position.y -= 0.5;
+  gameState.kills++;
+  const loot = Math.floor(Math.random() * 15) + 5;
+  gameState.gold += loot;
+  showMessage(`Враг повержен! +${loot} золота`, '#44cc66');
+  corpses.push({ mesh: npc.mesh, timer: 60 });
+
+  // Random chance of dismemberment on killing blow
+  if (Math.random() < 0.15) {
+    applyRandomInjury(npc);
+  }
+}
+
+function robCaravan(caravan) {
+  caravan.alive = false;
+  caravan.mesh.visible = false;
+  gameState.gold += caravan.loot;
+  gameState.caravansRobbed++;
+  showMessage(`🎉 КОРОВАН ОГРАБЛЕН! +${caravan.loot} золота!`, '#ffcc00');
+
+  // Respawn caravan after delay
+  setTimeout(() => {
+    caravan.alive = true;
+    caravan.health = 100;
+    caravan.progress = 0;
+    caravan.loot = 30 + Math.floor(Math.random() * 50);
+    caravan.mesh.visible = true;
+    caravan.mesh.position.copy(caravan.start);
+  }, 30000);
+}
+
+// --- Dismemberment ---
+function applyRandomInjury(source) {
+  const parts = ['leftArm', 'rightArm', 'leftEye', 'rightEye', 'leftLeg', 'rightLeg'];
+  const available = parts.filter(p => !gameState.injuries[p]);
+  if (available.length === 0) return;
+
+  const part = available[Math.floor(Math.random() * available.length)];
+  applyInjury(part);
+}
+
+function applyInjury(part) {
+  if (gameState.injuries[part]) return;
+  gameState.injuries[part] = true;
+
+  const names = {
+    leftArm: 'левую руку', rightArm: 'правую руку',
+    leftEye: 'левый глаз', rightEye: 'правый глаз',
+    leftLeg: 'левую ногу', rightLeg: 'правую ногу'
+  };
+
+  showMessage(`⚠️ Ты потерял ${names[part]}!`, '#cc2200');
+
+  // Visual effects
+  if (part === 'leftEye' || part === 'rightEye') {
+    const overlay = document.getElementById('eye-injury');
+    overlay.style.display = 'block';
+    if (part === 'rightEye') {
+      overlay.style.left = 'auto';
+      overlay.style.right = '0';
+    }
+  }
+
+  // Bleed effect
+  if (part.includes('Arm') || part.includes('Leg')) {
+    bleedTimer = 30; // 30 seconds to get bandage
+    showMessage('💉 Кровотечение! Найди бинты или умрёшь!', '#cc0000');
+  }
+}
+
+function updateInjuries(dt) {
+  // Bleeding
+  if (bleedTimer > 0) {
+    bleedTimer -= dt;
+    gameState.health -= dt * 3;
+    document.getElementById('injury-overlay').style.background = `rgba(180,0,0,${0.1 + Math.sin(Date.now() * 0.005) * 0.05})`;
+    if (bleedTimer <= 0) {
+      bleedTimer = 0;
+    }
+  } else {
+    document.getElementById('injury-overlay').style.background = 'transparent';
+  }
+
+  // Leg injury - reduced speed handled in movement
+  // Arm injury - reduced damage handled in attack
+
+  // Update display
+  const injList = [];
+  if (gameState.injuries.leftArm) injList.push(gameState.prosthetics.leftArm ? '🦾 Протез (Л.рука)' : '🩸 Л.рука');
+  if (gameState.injuries.rightArm) injList.push(gameState.prosthetics.rightArm ? '🦾 Протез (П.рука)' : '🩸 П.рука');
+  if (gameState.injuries.leftEye) injList.push('👁️ Л.глаз');
+  if (gameState.injuries.rightEye) injList.push('👁️ П.глаз');
+  if (gameState.injuries.leftLeg) injList.push(gameState.prosthetics.leftLeg ? '🦿 Протез (Л.нога)' : '🩸 Л.нога');
+  if (gameState.injuries.rightLeg) injList.push(gameState.prosthetics.rightLeg ? '🦿 Протез (П.нога)' : '🩸 П.нога');
+  document.getElementById('injuries-display').innerHTML = injList.length ? '<span style="color:#cc4444">' + injList.join(' | ') + '</span>' : '';
+}
+
+// --- Interaction ---
+function tryInteract() {
+  if (shopOpen) { closeShop(); return; }
+
+  // Check merchants
+  for (const m of merchants) {
+    const dx = m.mesh.position.x - playerBody.position.x;
+    const dz = m.mesh.position.z - playerBody.position.z;
+    if (Math.sqrt(dx * dx + dz * dz) < 5) {
+      openShop(m);
+      return;
+    }
+  }
+
+  showMessage('Нечего делать. Подойди к торговцу [E]', '#888');
+}
+
+// --- Shop ---
+function openShop(merchant) {
+  shopOpen = true;
+  document.exitPointerLock();
+  const ui = document.getElementById('shop-ui');
+  ui.classList.add('active');
+  document.getElementById('shop-gold').textContent = gameState.gold;
+
+  const container = document.getElementById('shop-items');
+  container.innerHTML = '';
+  merchant.items.forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'shop-item';
+    div.innerHTML = `
+      <span class="item-name">${item.name}</span>
+      <span class="item-price">${item.price}💰</span>
+      <button class="item-btn" onclick="buyItem(${idx}, this)">Купить</button>
+    `;
+    container.appendChild(div);
+    div._item = item;
+    div._merchant = merchant;
+  });
+}
+
+window.buyItem = function(idx, btn) {
+  const container = document.getElementById('shop-items');
+  const items = container.querySelectorAll('.shop-item');
+  const item = items[idx]?._item;
+  if (!item) return;
+
+  if (gameState.gold < item.price) {
+    showMessage('Недостаточно золота!', '#cc2200');
+    return;
+  }
+
+  gameState.gold -= item.price;
+  document.getElementById('shop-gold').textContent = gameState.gold;
+
+  switch (item.type) {
+    case 'heal':
+      gameState.health = Math.min(gameState.maxHealth, gameState.health + 50);
+      showMessage('❤️ Здоровье восстановлено!', '#44cc66');
+      break;
+    case 'stamina_pot':
+      gameState.stamina = Math.min(gameState.maxStamina, gameState.stamina + 50);
+      showMessage('⚡ Выносливость восстановлена!', '#44cc66');
+      break;
+    case 'prosthetic_arm':
+      if (gameState.injuries.leftArm && !gameState.prosthetics.leftArm) {
+        gameState.prosthetics.leftArm = true;
+        showMessage('🦾 Протез левой руки установлен!', '#44cc66');
+      } else if (gameState.injuries.rightArm && !gameState.prosthetics.rightArm) {
+        gameState.prosthetics.rightArm = true;
+        showMessage('🦾 Протез правой руки установлен!', '#44cc66');
+      } else {
+        gameState.gold += item.price;
+        document.getElementById('shop-gold').textContent = gameState.gold;
+        showMessage('Протез не нужен!', '#888');
+      }
+      break;
+    case 'prosthetic_leg':
+      if (gameState.injuries.leftLeg && !gameState.prosthetics.leftLeg) {
+        gameState.prosthetics.leftLeg = true;
+        showMessage('🦿 Протез левой ноги установлен!', '#44cc66');
+      } else if (gameState.injuries.rightLeg && !gameState.prosthetics.rightLeg) {
+        gameState.prosthetics.rightLeg = true;
+        showMessage('🦿 Протез правой ноги установлен!', '#44cc66');
+      } else {
+        gameState.gold += item.price;
+        document.getElementById('shop-gold').textContent = gameState.gold;
+        showMessage('Протез не нужен!', '#888');
+      }
+      break;
+    case 'bandage':
+      if (bleedTimer > 0) {
+        bleedTimer = 0;
+        showMessage('🏥 Кровотечение остановлено!', '#44cc66');
+      } else {
+        gameState.gold += item.price;
+        document.getElementById('shop-gold').textContent = gameState.gold;
+        showMessage('Нет кровотечения!', '#888');
+      }
+      break;
+    case 'eyepatch':
+      showMessage('👁️ Повязка надета. Стильно!', '#44cc66');
+      break;
+    case 'weapon':
+      showMessage('🗡️ Новый меч! Урон увеличен!', '#44cc66');
+      break;
+    case 'shield':
+      showMessage('🛡️ Щит! Блок усилен!', '#44cc66');
+      break;
+  }
+};
+
+function closeShop() {
+  shopOpen = false;
+  document.getElementById('shop-ui').classList.remove('active');
+  requestLock();
+}
+
+// --- Player Update ---
+function updatePlayer(dt) {
+  if (!isAlive || !gameState.faction) return;
+
+  // Movement
+  let speed = MOVE_SPEED;
+  if (keys['ShiftLeft']) speed *= SPRINT_MULT;
+
+  // Leg injury penalty
+  const legInjured = (gameState.injuries.leftLeg && !gameState.prosthetics.leftLeg) ||
+                     (gameState.injuries.rightLeg && !gameState.prosthetics.rightLeg);
+  if (legInjured) speed *= 0.4;
+
+  const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+  const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+
+  let moveDir = new THREE.Vector3();
+  if (keys['KeyW']) moveDir.add(forward);
+  if (keys['KeyS']) moveDir.sub(forward);
+  if (keys['KeyA']) moveDir.sub(right);
+  if (keys['KeyD']) moveDir.add(right);
+  if (moveDir.length() > 0) moveDir.normalize();
+
+  // Stamina drain from sprinting
+  if (keys['ShiftLeft'] && moveDir.length() > 0) {
+    gameState.stamina = Math.max(0, gameState.stamina - dt * 20);
+    if (gameState.stamina <= 0) speed = MOVE_SPEED;
+  } else {
+    gameState.stamina = Math.min(gameState.maxStamina, gameState.stamina + dt * 15);
+  }
+
+  playerBody.velocity.x = moveDir.x * speed;
+  playerBody.velocity.z = moveDir.z * speed;
+
+  // Gravity & jumping
+  if (keys['Space'] && playerBody.onGround) {
+    playerBody.velocity.y = JUMP_FORCE;
+    playerBody.onGround = false;
+  }
+  playerBody.velocity.y += GRAVITY * dt;
+
+  // Apply velocity
+  playerBody.position.x += playerBody.velocity.x * dt;
+  playerBody.position.y += playerBody.velocity.y * dt;
+  playerBody.position.z += playerBody.velocity.z * dt;
+
+  // Ground collision
+  const groundY = getHeight(playerBody.position.x, playerBody.position.z) + 2;
+  if (playerBody.position.y < groundY) {
+    playerBody.position.y = groundY;
+    playerBody.velocity.y = 0;
+    playerBody.onGround = true;
+  }
+
+  // World bounds
+  playerBody.position.x = Math.max(-HALF_WORLD + 2, Math.min(HALF_WORLD - 2, playerBody.position.x));
+  playerBody.position.z = Math.max(-HALF_WORLD + 2, Math.min(HALF_WORLD - 2, playerBody.position.z));
+
+  // Building collision (simple push-out)
+  buildings.forEach(b => {
+    const dx = playerBody.position.x - b.mesh.position.x;
+    const dz = playerBody.position.z - b.mesh.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    const minDist = b.type === 'palace' ? 12 : (b.type === 'fort' ? 10 : 3.5);
+    if (dist < minDist) {
+      const push = minDist - dist;
+      const nx = dx / dist, nz = dz / dist;
+      playerBody.position.x += nx * push;
+      playerBody.position.z += nz * push;
+    }
+  });
+
+  // Camera
+  camera.position.copy(playerBody.position);
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+
+  // Attack cooldown
+  if (attackTimer > 0) attackTimer -= dt;
+
+  // Health check
+  if (gameState.health <= 0) die();
+}
+
+// --- NPC AI ---
+function updateNPCs(dt) {
+  npcs.forEach(npc => {
+    if (!npc.alive) return;
+
+    const px = playerBody.position.x, pz = playerBody.position.z;
+    const dx = px - npc.mesh.position.x, dz = pz - npc.mesh.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+
+    const isEnemy = gameState.faction && FACTION_ENEMIES[gameState.faction]?.includes(npc.faction);
+
+    switch (npc.state) {
+      case 'patrol':
+        npc.patrolAngle += dt * 0.3;
+        const pr = 15;
+        const tx = npc.patrolCenter.x + Math.cos(npc.patrolAngle) * pr;
+        const tz = npc.patrolCenter.y + Math.sin(npc.patrolAngle) * pr;
+        const pdx = tx - npc.mesh.position.x, pdz = tz - npc.mesh.position.z;
+        const pd = Math.sqrt(pdx * pdx + pdz * pdz);
+        if (pd > 1) {
+          npc.mesh.position.x += (pdx / pd) * npc.speed * dt;
+          npc.mesh.position.z += (pdz / pd) * npc.speed * dt;
+          npc.mesh.rotation.y = Math.atan2(pdx, pdz);
+        }
+        // Detect player
+        if (isEnemy && dist < 25) npc.state = 'chase';
+        break;
+
+      case 'chase':
+        if (dist < ATTACK_RANGE) {
+          npc.state = 'attack';
+        } else if (dist > 40) {
+          npc.state = 'patrol';
+        } else {
+          const cn = 1 / dist;
+          npc.mesh.position.x += dx * cn * npc.speed * dt;
+          npc.mesh.position.z += dz * cn * npc.speed * dt;
+          npc.mesh.rotation.y = Math.atan2(dx, dz);
+        }
+        break;
+
+      case 'attack':
+        npc.attackTimer -= dt;
+        if (dist > ATTACK_RANGE + 1) {
+          npc.state = 'chase';
+        } else if (npc.attackTimer <= 0) {
+          npc.attackTimer = 0.8 + Math.random() * 0.5;
+          let dmg = 8 + Math.random() * 7;
+          if (isBlocking) dmg *= 0.3;
+          gameState.health -= dmg;
+
+          // Random dismemberment chance on hit
+          if (Math.random() < 0.04) {
+            applyRandomInjury(npc);
+          }
+
+          showMessage(`Враг атакует! -${Math.ceil(dmg)} HP`, '#cc4444');
+          // Flash red
+          document.getElementById('injury-overlay').style.background = 'rgba(200,0,0,0.2)';
+          setTimeout(() => {
+            if (bleedTimer <= 0) document.getElementById('injury-overlay').style.background = 'transparent';
+          }, 200);
+        }
+        npc.mesh.rotation.y = Math.atan2(dx, dz);
+        break;
+    }
+
+    // Keep on ground
+    npc.mesh.position.y = getHeight(npc.mesh.position.x, npc.mesh.position.z);
+
+    // Leg animation
+    const walkSpeed = npc.state !== 'patrol' ? 8 : 4;
+    if (npc.state !== 'attack') {
+      const t = Date.now() * 0.001 * walkSpeed;
+      if (npc.mesh.userData.leftLeg) npc.mesh.userData.leftLeg.rotation.x = Math.sin(t) * 0.4;
+      if (npc.mesh.userData.rightLeg) npc.mesh.userData.rightLeg.rotation.x = -Math.sin(t) * 0.4;
+      if (npc.mesh.userData.leftArm) npc.mesh.userData.leftArm.rotation.x = -Math.sin(t) * 0.3;
+      if (npc.mesh.userData.rightArm) npc.mesh.userData.rightArm.rotation.x = Math.sin(t) * 0.3;
+    } else {
+      // Attack animation
+      if (npc.mesh.userData.rightArm) {
+        npc.mesh.userData.rightArm.rotation.x = Math.sin(Date.now() * 0.01) * 1.2;
+      }
+    }
+  });
+}
+
+// --- Caravan Update ---
+function updateCaravans(dt) {
+  caravans.forEach(c => {
+    if (!c.alive) return;
+
+    c.progress += c.speed * dt * c.direction;
+    if (c.progress >= 1) { c.progress = 1; c.direction = -1; }
+    if (c.progress <= 0) { c.progress = 0; c.direction = 1; }
+
+    const pos = new THREE.Vector3().lerpVectors(c.start, c.end, c.progress);
+    pos.y = getHeight(pos.x, pos.z);
+    c.mesh.position.copy(pos);
+
+    // Face direction
+    const next = new THREE.Vector3().lerpVectors(c.start, c.end, c.progress + 0.01 * c.direction);
+    c.mesh.lookAt(next.x, c.mesh.position.y, next.z);
+  });
+}
+
+// --- Death & Respawn ---
+function die() {
+  if (!isAlive) return;
+  isAlive = false;
+  document.getElementById('death-screen').classList.add('active');
+  document.exitPointerLock();
+}
+
+window.respawn = function() {
+  gameState.health = gameState.maxHealth;
+  gameState.stamina = gameState.maxStamina;
+  gameState.gold = Math.max(0, gameState.gold - 20);
+  bleedTimer = 0;
+
+  const spawn = FACTION_SPAWNS[gameState.faction];
+  playerBody.position.set(spawn.x, getHeight(spawn.x, spawn.z) + 2, spawn.z);
+  playerBody.velocity.set(0, 0, 0);
+
+  isAlive = true;
+  document.getElementById('death-screen').classList.remove('active');
+  document.getElementById('eye-injury').style.display = 'none';
+  document.getElementById('injury-overlay').style.background = 'transparent';
+
+  // Reset eye injuries on respawn
+  gameState.injuries.leftEye = false;
+  gameState.injuries.rightEye = false;
+
+  showMessage('Ты возродился! -20 золота', '#ccaa44');
+  requestLock();
+};
+
+// --- Save/Load ---
+function saveGame() {
+  const save = {
+    ...gameState,
+    px: playerBody.position.x,
+    py: playerBody.position.y,
+    pz: playerBody.position.z,
+    yaw, pitch,
+    timestamp: Date.now()
+  };
+  localStorage.setItem('korovany_save', JSON.stringify(save));
+  showMessage('💾 Игра сохранена!', '#44cc66');
+}
+
+function loadGame() {
+  const data = localStorage.getItem('korovany_save');
+  if (!data) {
+    showMessage('Нет сохранения!', '#cc2200');
+    return;
+  }
+  const save = JSON.parse(data);
+  Object.assign(gameState, save);
+  playerBody.position.set(save.px, save.py, save.pz);
+  yaw = save.yaw || 0;
+  pitch = save.pitch || 0;
+
+  document.getElementById('faction-screen').style.display = 'none';
+  document.getElementById('hud').style.display = 'block';
+  document.getElementById('hud-info').style.display = 'block';
+  document.getElementById('crosshair').style.display = 'block';
+  document.getElementById('instructions').style.display = 'block';
+  document.getElementById('faction-display').textContent = 'Фракция: ' + FACTION_NAMES[gameState.faction];
+
+  isAlive = true;
+  showMessage('📜 Игра загружена!', '#44cc66');
+
+  // Restore eye injury visuals
+  if (gameState.injuries.leftEye) {
+    const overlay = document.getElementById('eye-injury');
+    overlay.style.display = 'block';
+    overlay.style.left = '0';
+    overlay.style.right = 'auto';
+  }
+  if (gameState.injuries.rightEye) {
+    const overlay = document.getElementById('eye-injury');
+    overlay.style.display = 'block';
+    overlay.style.left = 'auto';
+    overlay.style.right = '0';
+  }
+
+  requestLock();
+}
+
+// --- HUD Update ---
+function updateHUD() {
+  const hp = Math.max(0, Math.ceil(gameState.health));
+  const sp = Math.max(0, Math.ceil(gameState.stamina));
+  document.getElementById('health-fill').style.width = (hp / gameState.maxHealth * 100) + '%';
+  document.getElementById('health-text').textContent = hp + '/' + gameState.maxHealth;
+  document.getElementById('stamina-fill').style.width = (sp / gameState.maxStamina * 100) + '%';
+  document.getElementById('stamina-text').textContent = sp + '/' + gameState.maxStamina;
+  document.getElementById('gold-display').textContent = '💰 ' + gameState.gold;
+  document.getElementById('zone-display').textContent = 'Зона: ' + getZoneName(playerBody.position.x, playerBody.position.z);
+}
+
+// --- Minimap ---
+function updateMinimap() {
+  const canvas = document.getElementById('minimap-canvas');
+  const ctx = canvas.getContext('2d');
+  const w = 160, h = 160;
+  ctx.clearRect(0, 0, w, h);
+
+  // Zone colors
+  const zoneColors = { town: '#8B7355', palace: '#6B6B8D', forest: '#2D5A1E', mountain: '#4A3728' };
+  // Draw zones
+  ctx.fillStyle = zoneColors.town;    ctx.fillRect(0, 0, w/2, h/2);
+  ctx.fillStyle = zoneColors.palace;  ctx.fillRect(w/2, 0, w/2, h/2);
+  ctx.fillStyle = zoneColors.forest;  ctx.fillRect(0, h/2, w/2, h/2);
+  ctx.fillStyle = zoneColors.mountain; ctx.fillRect(w/2, h/2, w/2, h/2);
+
+  // Zone borders
+  ctx.strokeStyle = '#554422';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0, 0, w, h);
+  ctx.beginPath(); ctx.moveTo(w/2, 0); ctx.lineTo(w/2, h); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+
+  // NPCs
+  npcs.forEach(npc => {
+    if (!npc.alive) return;
+    const mx = (npc.mesh.position.x / WORLD_SIZE + 0.5) * w;
+    const my = (npc.mesh.position.z / WORLD_SIZE + 0.5) * h;
+    const colors = { elf: '#44cc66', guard: '#6699ff', villain: '#ee4444', neutral: '#ccaa44' };
+    ctx.fillStyle = colors[npc.faction] || '#fff';
+    ctx.fillRect(mx - 1, my - 1, 3, 3);
+  });
+
+  // Caravans
+  caravans.forEach(c => {
+    if (!c.alive) return;
+    const mx = (c.mesh.position.x / WORLD_SIZE + 0.5) * w;
+    const my = (c.mesh.position.z / WORLD_SIZE + 0.5) * h;
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillRect(mx - 2, my - 2, 5, 5);
+  });
+
+  // Player
+  const px = (playerBody.position.x / WORLD_SIZE + 0.5) * w;
+  const py = (playerBody.position.z / WORLD_SIZE + 0.5) * h;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(px, py, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Player direction
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px, py);
+  ctx.lineTo(px - Math.sin(yaw) * 8, py - Math.cos(yaw) * 8);
+  ctx.stroke();
+}
+
+// --- NPC Respawn ---
+let npcRespawnTimer = 0;
+function respawnNPCs(dt) {
+  npcRespawnTimer += dt;
+  if (npcRespawnTimer > 15) {
+    npcRespawnTimer = 0;
+    npcs.forEach(npc => {
+      if (!npc.alive) {
+        // Check if far from player
+        const dx = npc.patrolCenter.x - playerBody.position.x;
+        const dz = npc.patrolCenter.y - playerBody.position.z;
+        if (Math.sqrt(dx * dx + dz * dz) > 50) {
+          npc.alive = true;
+          npc.health = npc.maxHealth;
+          npc.state = 'patrol';
+          npc.mesh.rotation.x = 0;
+          npc.mesh.position.set(npc.patrolCenter.x, getHeight(npc.patrolCenter.x, npc.patrolCenter.y), npc.patrolCenter.y);
+        }
+      }
+    });
+  }
+}
+
+// --- Messages ---
+function showMessage(text, color) {
+  const container = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.style.color = color || '#e0d8c0';
+  div.textContent = text;
+  container.appendChild(div);
+  setTimeout(() => div.remove(), 4500);
+  // Keep max 5 messages
+  while (container.children.length > 5) container.firstChild.remove();
+}
+
+// --- Resize ---
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// --- Main Loop ---
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.1);
+
+  if (gameState.faction && isAlive && !shopOpen) {
+    updatePlayer(dt);
+    updateNPCs(dt);
+    updateCaravans(dt);
+    updateTreeLOD();
+    updateInjuries(dt);
+    respawnNPCs(dt);
+  }
+
+  updateHUD();
+  updateMinimap();
+
+  renderer.render(scene, camera);
+}
+
+// Prevent context menu on right-click
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+// --- Initialize ---
+init();
+</script>
+</body>
+</html>
