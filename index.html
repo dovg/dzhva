@@ -3150,6 +3150,18 @@ function animate() {
 // Prevent context menu on right-click
 document.addEventListener('contextmenu', e => e.preventDefault());
 
+// --- Expose functions to global scope for onclick handlers ---
+window.startGame = startGame;
+window.loadGame = loadGame;
+window.closeShop = closeShop;
+window.toggleInventory = toggleInventory;
+window.toggleQuestLog = toggleQuestLog;
+window.saveGame = saveGame;
+window.acceptQuest = acceptQuest;
+window.equipItem = equipItem;
+window.useConsumable = useConsumable;
+window.musicSetVolume = musicSetVolume;
+
 // --- Initialize ---
 init();
 </script>
